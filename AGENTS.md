@@ -11,11 +11,16 @@
   - **`src/shared/`** – Cross-cutting concerns (UI, utils, config)
   - **`src/store/`** – Global state management
   - **`src/test/`** – Test setup and utilities
+- **`.storybook/`** – Storybook configuration and setup
+  - **`main.ts`** – Storybook main configuration (addons, framework)
+  - **`preview.tsx`** – Global decorators, themes, and story parameters
+  - **`vitest.setup.ts`** – Vitest integration for component testing
 
 ### Static Assets Strategy
 
 - **`public/`** – Static assets copied as-is to `dist/` (no Vite processing)
   - Use for: favicon, robots.txt, manifest.json, unchanging assets
+  - **`mockServiceWorker.js`** – MSW service worker for API mocking (Storybook)
   - Reference: `/favicon.svg` in HTML or `import.meta.env.BASE_URL + 'file.ext'`
 - **`src/shared/assets/`** – Development assets processed by Vite (optimization, hashing)
   - **`images/`** – Business images (optimized, cache-busted)
@@ -27,6 +32,7 @@
 
 - Future automation scripts may live in `scripts/`; remove experimental helpers before committing.
 - Colocate feature tests in `src/features/<slice>/__tests__/`; shared test setup in `src/test/setup.ts`.
+- Story files (`.stories.tsx`) should be placed next to their components for easy discovery.
 
 ## Build, Test, and Development Commands
 
@@ -36,6 +42,8 @@
 - **`pnpm dev`** – Start Vite dev server with HMR at `http://localhost:5173`
 - **`pnpm build`** – Type-check with `tsc -b` and build optimized bundle to `dist/`
 - **`pnpm preview`** – Serve production build locally for QA validation
+- **`pnpm storybook`** – Start Storybook dev server for component development and testing
+- **`pnpm build-storybook`** – Build static Storybook for deployment
 
 ### Code Quality
 
@@ -65,17 +73,19 @@
 
 ### File Naming & Structure
 
-| Suffix        | Purpose                   | Example                   |
-| ------------- | ------------------------- | ------------------------- |
-| `.tsx`        | React components          | `TaskItem.tsx`            |
-| `.ts`         | Non-component logic       | `useTaskActions.ts`       |
-| `.store.ts`   | Zustand state slices      | `tasks.store.ts`          |
-| `.service.ts` | API/business services     | `task.service.ts`         |
-| `.mapper.ts`  | DTO transformations       | `task.mapper.ts`          |
-| `.schema.ts`  | Validation schemas        | `task.schema.ts`          |
-| `.types.ts`   | Type definitions          | `task.types.ts`           |
-| `.paths.ts`   | API route definitions     | `task.paths.ts`           |
-| `index.ts`    | Public API barrel exports | `features/tasks/index.ts` |
+| Suffix         | Purpose                   | Example                   |
+| -------------- | ------------------------- | ------------------------- |
+| `.tsx`         | React components          | `TaskItem.tsx`            |
+| `.ts`          | Non-component logic       | `useTaskActions.ts`       |
+| `.store.ts`    | Zustand state slices      | `tasks.store.ts`          |
+| `.service.ts`  | API/business services     | `task.service.ts`         |
+| `.mapper.ts`   | DTO transformations       | `task.mapper.ts`          |
+| `.schema.ts`   | Validation schemas        | `task.schema.ts`          |
+| `.types.ts`    | Type definitions          | `task.types.ts`           |
+| `.paths.ts`    | API route definitions     | `task.paths.ts`           |
+| `.stories.tsx` | Storybook stories         | `TaskItem.stories.tsx`    |
+| `.test.tsx`    | Vitest unit/integration   | `TaskItem.test.tsx`       |
+| `index.ts`     | Public API barrel exports | `features/tasks/index.ts` |
 
 ### Naming Conventions
 
@@ -147,9 +157,32 @@ import { Button, TextField, Card } from '@mui/material'
 
 ## Testing Guidelines
 
-- Target Vitest with React Testing Library, initialized through `src/test/setup.ts`, to keep tooling aligned with Vite.
-- Name specs `FeatureName.test.tsx` inside `src/features/<slice>/__tests__/`; cover rendering, interactions, and domain rules per slice.
-- Document any intentional gaps in coverage when submitting reviews, and plan follow-up tasks for critical omissions.
+### Unit & Integration Testing
+
+- Use **Vitest** with React Testing Library, initialized through `src/test/setup.ts`
+- Name test files `FeatureName.test.tsx` inside `src/features/<slice>/__tests__/`
+- Cover rendering, interactions, and domain rules per feature slice
+- Document any intentional gaps in coverage when submitting reviews
+
+### Component Testing with Storybook
+
+- Write stories for all UI components using Component Story Format (CSF)
+- Place story files next to components: `ComponentName.stories.tsx`
+- Use Storybook's **Vitest integration** for browser-based component testing
+- Leverage MSW (Mock Service Worker) for API mocking in stories
+- Configure stories with:
+  - **Theme switching** – Test components in light/dark modes
+  - **Responsive viewports** – Mobile, tablet, desktop presets
+  - **Accessibility testing** – Integrated via `@storybook/addon-a11y`
+  - **Interactive controls** – Test component props dynamically
+
+### Testing Best Practices
+
+1. **Colocate tests** – Keep tests close to the code they verify
+2. **Test user behavior** – Focus on what users see and do, not implementation
+3. **Mock external dependencies** – Use MSW for API calls, mock services for business logic
+4. **Visual regression** – Use Storybook for visual QA and design system validation
+5. **Accessibility first** – Run a11y checks in both tests and stories
 
 ## Commit Guidelines
 

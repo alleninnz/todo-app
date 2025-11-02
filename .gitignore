@@ -39,3 +39,6 @@ coverage/
 
 # misc
 .serena/
+
+*storybook.log
+storybook-static
