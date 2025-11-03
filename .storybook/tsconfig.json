@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.app.json",
+  "compilerOptions": {
+    // Allow Storybook to use Node.js APIs (for MSW, etc.)
+    "types": ["node", "vite/client"],
+    // Storybook uses CommonJS for configuration files
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
+  },
+  // Explicitly include all Storybook config files
+  "include": ["*.ts", "*.tsx"],
+  // Exclude build output and dependencies
+  "exclude": ["../node_modules", "../dist", "../storybook-static"]
+}

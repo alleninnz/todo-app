@@ -39,6 +39,7 @@ coverage/
 
 # misc
 .serena/
+.pnpm-store/
 
 *storybook.log
 storybook-static

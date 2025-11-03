@@ -1,13 +1,13 @@
 import CssBaseline from '@mui/material/CssBaseline'
 import { ThemeProvider } from '@mui/material/styles'
+import { createAppTheme } from '@shared/config/theme'
+import { SnackbarProvider } from '@shared/ui/SnackbarProvider'
 import { withThemeFromJSXProvider } from '@storybook/addon-themes'
 import type { Decorator, Preview } from '@storybook/react-vite'
 import { initialize, mswLoader } from 'msw-storybook-addon'
-import { createAppTheme } from '../src/shared/config/theme'
-import { SnackbarProvider } from '../src/shared/ui/SnackbarProvider'
 
 // Import global styles
-import '../src/app/index.css'
+import '@app/index.css'
 
 // Initialize MSW for API mocking
 initialize({ onUnhandledRequest: 'warn' })

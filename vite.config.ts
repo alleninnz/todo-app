@@ -1,13 +1,14 @@
 /// <reference types="vitest/config" />
 import tailwind from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react-swc'
-import { defineConfig } from 'vite'
 import path from 'path'
+import { defineConfig } from 'vite'
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 // https://vite.dev/config/
-import { fileURLToPath } from 'node:url'
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { playwright } from '@vitest/browser-playwright'
+import { fileURLToPath } from 'node:url'
 const dirname =
   typeof __dirname !== 'undefined'
     ? __dirname
@@ -15,17 +16,7 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
-  plugins: [react(), tailwind()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@app': path.resolve(__dirname, './src/app'),
-      '@features': path.resolve(__dirname, './src/features'),
-      '@shared': path.resolve(__dirname, './src/shared'),
-      '@pages': path.resolve(__dirname, './src/pages'),
-      '@store': path.resolve(__dirname, './src/store'),
-    },
-  },
+  plugins: [react(), tailwind(), tsconfigPaths()],
   test: {
     projects: [
       {
