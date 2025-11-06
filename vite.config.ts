@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import tailwind from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react-swc'
+import react from '@vitejs/plugin-react'
 import path from 'path'
 import { defineConfig } from 'vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
@@ -18,7 +18,22 @@ const dirname =
 export default defineConfig({
   plugins: [react(), tailwind(), tsconfigPaths()],
   test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['src/test/setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reportsDirectory: 'coverage/unit',
+      reporter: ['text', 'html'],
+    },
+    css: true,
+    alias: { '@': path.resolve(dirname, 'src') },
     projects: [
+      {
+        extends: true,
+        test: { name: 'unit' }, // inherits the block above
+      },
       {
         extends: true,
         plugins: [

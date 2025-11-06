@@ -35,5 +35,5 @@
       "@store/*": ["./src/store/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "vitest.shims.d.ts"]
 }
