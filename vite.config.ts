@@ -20,8 +20,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['src/test/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
+    setupFiles: ['src/test/setup-env.ts', 'src/test/setup.ts'],
     coverage: {
       provider: 'v8',
       reportsDirectory: 'coverage/unit',
@@ -32,7 +31,10 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: 'unit' }, // inherits the block above
+        test: {
+          name: 'unit',
+          include: ['src/**/*.test.{ts,tsx}'],
+        },
       },
       {
         extends: true,

@@ -10,7 +10,10 @@
   - **`src/pages/`** – Route-level page components
   - **`src/shared/`** – Cross-cutting concerns (UI, utils, config)
   - **`src/store/`** – Global state management
-  - **`src/test/`** – Test setup and utilities
+  - **`src/test/`** – Test utilities, Vitest setup files, and MSW server mocks
+    - `setup-env.ts` – Polyfills browser APIs (matchMedia, storage). Do not duplicate these shims elsewhere.
+    - `setup.ts` – Registers MSW server lifecycle hooks before each test run.
+    - `mocks/handlers.ts` – TODO placeholder; keep TODO comments until API contracts are finalized.
 - **`.storybook/`** – Storybook configuration and setup
   - **`main.ts`** – Storybook main configuration (addons, framework)
   - **`preview.tsx`** – Global decorators, themes, and story parameters
@@ -31,7 +34,7 @@
 ### Scripts and Automation
 
 - Future automation scripts may live in `scripts/`; remove experimental helpers before committing.
-- Colocate feature tests in `src/features/<slice>/__tests__/`; shared test setup in `src/test/setup.ts`.
+- Colocate tests beside their targets (`src/features/<slice>/__tests__/`, `src/pages/__tests__/`, `src/shared/ui/__tests__/`). Shared Vitest setup lives in `src/test/setup-env.ts` and `src/test/setup.ts`.
 - Story files (`.stories.tsx`) should be placed next to their components for easy discovery.
 
 ## Build, Test, and Development Commands
@@ -159,7 +162,7 @@ import { Button, TextField, Card } from '@mui/material'
 
 ### Unit & Integration Testing
 
-- Use **Vitest** with React Testing Library, initialized through `src/test/setup.ts`
+- Use **Vitest** with React Testing Library, initialized through `src/test/setup-env.ts` (polyfills) and `src/test/setup.ts` (MSW server wiring)
 - Name test files `FeatureName.test.tsx` inside `src/features/<slice>/__tests__/`
 - Cover rendering, interactions, and domain rules per feature slice
 - Document any intentional gaps in coverage when submitting reviews
@@ -180,7 +183,7 @@ import { Button, TextField, Card } from '@mui/material'
 
 1. **Colocate tests** – Keep tests close to the code they verify
 2. **Test user behavior** – Focus on what users see and do, not implementation
-3. **Mock external dependencies** – Use MSW for API calls, mock services for business logic
+3. **Mock external dependencies** – Use MSW for API calls via `src/test/mocks/server.ts`; leave `handlers.ts` TODOs untouched until API contracts are finalized
 4. **Visual regression** – Use Storybook for visual QA and design system validation
 5. **Accessibility first** – Run a11y checks in both tests and stories
 
