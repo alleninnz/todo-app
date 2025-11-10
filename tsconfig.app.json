@@ -32,7 +32,8 @@
       "@features/*": ["./src/features/*"],
       "@shared/*": ["./src/shared/*"],
       "@pages/*": ["./src/pages/*"],
-      "@store/*": ["./src/store/*"]
+      "@store/*": ["./src/store/*"],
+      "@test/*": ["./src/test/*"]
     }
   },
   "include": ["src", "vitest.shims.d.ts"]
