@@ -1,6 +1,6 @@
 import { AppProviders } from './providers'
 
-function App() {
+const App = () => {
   return <AppProviders />
 }
 

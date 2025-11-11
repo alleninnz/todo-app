@@ -15,7 +15,7 @@ if (env.VITE_ENABLE_MSW && env.VITE_ENV === 'development') {
   })
 }
 
-export function AppProviders() {
+export const AppProviders = () => {
   return (
     <AppErrorBoundary>
       <ThemeProvider theme={theme}>
