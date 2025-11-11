@@ -1,3 +1,3 @@
-export default function AppLayout() {
+export const AppLayout = () => {
   return <div>App Layout</div>
 }

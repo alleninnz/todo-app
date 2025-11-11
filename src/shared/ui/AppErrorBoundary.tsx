@@ -4,6 +4,6 @@ interface AppErrorBoundaryProps {
   children: ReactNode
 }
 
-export function AppErrorBoundary({ children }: AppErrorBoundaryProps) {
+export const AppErrorBoundary = ({ children }: AppErrorBoundaryProps) => {
   return <>{children}</>
 }

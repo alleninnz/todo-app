@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import ErrorPage from '../ErrorPage'
+import { ErrorPage } from '../ErrorPage'
 
 describe('ErrorPage', () => {
   it('shows a not found message when status code is 404', () => {

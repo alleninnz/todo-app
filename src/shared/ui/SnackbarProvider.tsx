@@ -30,7 +30,7 @@ interface SnackbarProviderProps {
  * enqueueSnackbar('Task created successfully', { variant: 'success' });
  * ```
  */
-export function SnackbarProvider({ children }: SnackbarProviderProps) {
+export const SnackbarProvider = ({ children }: SnackbarProviderProps) => {
   return (
     <NotistackProvider
       // Max number of snackbars displayed simultaneously
