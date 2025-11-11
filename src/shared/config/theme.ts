@@ -256,7 +256,7 @@ const zIndex: ThemeOptions['zIndex'] = {
  * @param mode - Color mode ('light' or 'dark')
  * @returns Theme object with all customizations applied
  */
-export function createAppTheme(mode: ColorMode = 'light') {
+export const createAppTheme = (mode: ColorMode = 'light') => {
   const theme = createTheme({
     breakpoints,
     palette: mode === 'dark' ? darkPalette : lightPalette,

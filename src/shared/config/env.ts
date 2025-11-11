@@ -43,7 +43,7 @@ const envSchema = z.object({
 type Env = z.infer<typeof envSchema>
 
 // Parse and validate the environment variables
-function parseEnv(): Env {
+const parseEnv = (): Env => {
   const parsedEnv = envSchema.safeParse(import.meta.env)
   if (!parsedEnv.success) {
     console.error(

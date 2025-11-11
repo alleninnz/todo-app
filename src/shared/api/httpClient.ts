@@ -45,7 +45,7 @@ const debugLog = (
 /**
  * Safely parses response payload, handling both JSON and text responses
  */
-async function parseResponsePayload(response?: Response): Promise<unknown> {
+const parseResponsePayload = async (response?: Response): Promise<unknown> => {
   if (!response) {
     return undefined
   }
@@ -76,7 +76,7 @@ async function parseResponsePayload(response?: Response): Promise<unknown> {
 /**
  * Extracts request body for logging purposes
  */
-async function extractRequestBody(request: Request): Promise<unknown> {
+const extractRequestBody = async (request: Request): Promise<unknown> => {
   try {
     const clone = request.clone()
     const contentType = clone.headers.get('content-type')
@@ -102,7 +102,7 @@ async function extractRequestBody(request: Request): Promise<unknown> {
 /**
  * Extracts headers as a plain object for logging
  */
-function extractHeaders(headers: Headers): Record<string, string> {
+const extractHeaders = (headers: Headers): Record<string, string> => {
   const result: Record<string, string> = {}
   headers.forEach((value, key) => {
     // Exclude sensitive headers from logs
