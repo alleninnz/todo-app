@@ -38,74 +38,79 @@ Follow phases sequentially; each step references the files above and includes gu
 
 ### Phase A: Shared Foundation
 
-1. **Shared Task Types (`src/shared/types/task.types.ts`)**
-   - Define reusable enums/interfaces: `TaskPriority`, `TaskStatus`, `Task`, `TaskDraft`, `TaskDTO`, `TaskFilters`, `TaskSortOption`.
-   - Encapsulate mapping helpers (e.g., `PRIORITY_ORDER`) for sorting logic.
-   - _Hint_: keep DTO separate from domain for mapper clarity.
-   - _Example_:
+- [ ] **Shared Task Types (`src/shared/types/task.types.ts`)**
 
-     ```ts
-     export type TaskPriority = 'none' | 'low' | 'medium' | 'high'
-     export interface Task {
-       id: string
-       title: string
-       description?: string
-       priority: TaskPriority
-       completed: boolean
-       createdAt: string
-       dueDate?: string
-     }
-     ```
+- Define reusable enums/interfaces: `TaskPriority`, `TaskStatus`, `Task`, `TaskDraft`, `TaskDTO`, `TaskFilters`, `TaskSortOption`.
+- Encapsulate mapping helpers (e.g., `PRIORITY_ORDER`) for sorting logic.
+- _Hint_: keep DTO separate from domain for mapper clarity.
+- _Example_:
 
-2. **HTTP Client (`src/shared/api/httpClient.ts`)**
-   - Instantiate `ky` with base URL, timeout, JSON headers, and error normalization.
-   - Surface typed helpers for GET/POST/PATCH/DELETE returning JSON.
-   - Add hook support for request logging when `env.VITE_ENABLE_DEBUG` is true.
-   - _Example_:
+  ```ts
+  export type TaskPriority = 'none' | 'low' | 'medium' | 'high'
+  export interface Task {
+    id: string
+    title: string
+    description?: string
+    priority: TaskPriority
+    completed: boolean
+    createdAt: string
+    dueDate?: string
+  }
+  ```
 
-     ```ts
-     import ky from 'ky'
-     import { env } from '@shared/config/env'
+- [x] **HTTP Client (`src/shared/api/httpClient.ts`)**
+  - Instantiate `ky` with base URL, timeout, JSON headers, and error normalization.
+  - Surface typed helpers for GET/POST/PATCH/DELETE returning JSON.
+  - Add hook support for request logging when `env.VITE_ENABLE_DEBUG` is true.
+  - _Example_:
 
-     export const httpClient = ky.create({
-       prefixUrl: env.VITE_API_BASE_URL,
-       timeout: env.VITE_TIMEOUT,
-       hooks: {
-         beforeRequest: [
-           request => {
-             request.headers.set('Accept', 'application/json')
-           },
-         ],
-         afterResponse: [
-           (_req, _opts, res) => {
-             if (!res.ok) throw new Error('Network error')
-           },
-         ],
-       },
-     })
-     ```
+    ```ts
+    import ky from 'ky'
+    import { env } from '@shared/config/env'
 
-3. **Snackbar & Async Hooks (`src/shared/hooks`)**
-   - `useSnackbar.ts`: wrap `notistack` hook; expose helpers like `showSuccess`, `showError` with sensible defaults.
-   - `useAsyncState.ts`: manage `{ status, data, error }` with `execute(asyncFn)` pattern for reuse across hooks.
-   - _Hint_: expose discriminated union type for status (`'idle' | 'loading' | 'success' | 'error'`).
+    export const httpClient = ky.create({
+      prefixUrl: env.VITE_API_BASE_URL,
+      timeout: env.VITE_TIMEOUT,
+      hooks: {
+        beforeRequest: [
+          request => {
+            request.headers.set('Accept', 'application/json')
+          },
+        ],
+        afterResponse: [
+          (_req, _opts, res) => {
+            if (!res.ok) throw new Error('Network error')
+          },
+        ],
+      },
+    })
+    ```
 
-4. **Utility Libraries (`src/shared/lib/date.ts`, `format.ts`)**
-   - Date helpers: `isOverdue`, `compareByDueDate`, `formatDueDate` using Day.js; return typed comparators for sorting.
-   - Formatting helpers: `formatPriority`, `truncateText`, etc. Keep pure and reusable.
+- [x] **Snackbar Hook (`src/shared/hooks/useSnackbar.ts`)** ✅
+  - Wraps `notistack` hook with convenient helpers: `showSuccess`, `showError`, `showWarning`, `showInfo`, `show`
+  - Includes close methods: `close(key)`, `closeAll()`
+  - Type-safe with `SnackbarOptions` interface
+  - Comprehensive tests and documentation in `README.md`
+- [ ] **Async State Hook (`src/shared/hooks/useAsyncState.ts`)**
+  - `useAsyncState.ts`: manage `{ status, data, error }` with `execute(asyncFn)` pattern for reuse across hooks.
+  - _Hint_: expose discriminated union type for status (`'idle' | 'loading' | 'success' | 'error'`).
 
-5. **Test Bootstrap (`src/test/setup.ts`)**
-   - Configure `@testing-library/jest-dom`, `msw`, and global mocks (e.g., `window.matchMedia`).
-   - _Snippet_:
+- [ ] **Utility Libraries (`src/shared/lib/date.ts`, `format.ts`)**
+  - Date helpers: `isOverdue`, `compareByDueDate`, `formatDueDate` using Day.js; return typed comparators for sorting.
+  - Formatting helpers: `formatPriority`, `truncateText`, etc. Keep pure and reusable.
 
-     ```ts
-     import '@testing-library/jest-dom/vitest'
-     import { server } from './mocks/server'
+- [x] **Test Bootstrap (`src/test/setup.ts`)**
+  - Configure `@testing-library/jest-dom`, `msw`, and global mocks (e.g., `window.matchMedia`).
+  - _Snippet_:
 
-     beforeAll(() => server.listen())
-     afterEach(() => server.resetHandlers())
-     afterAll(() => server.close())
-     ```
+    ```ts
+    import '@testing-library/jest-dom/vitest'
+    import { server } from './mocks/server'
+
+    beforeAll(() => server.listen())
+    afterEach(() => server.resetHandlers())
+    afterAll(() => server.close())
+    ```
 
 ### Phase B: Task Domain Logic
 

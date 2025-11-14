@@ -202,3 +202,59 @@ src/
 - 使用 React Router v7 进行路由管理
 - 全局错误边界 (`AppErrorBoundary`) 捕获运行时错误
 - 路由错误使用 `ErrorPage` 组件展示友好错误信息
+
+### 通知系统
+
+项目使用 `notistack` 提供全局通知功能，并通过自定义 Hook 简化使用。
+
+#### useSnackbar Hook
+
+位置：`src/shared/hooks/useSnackbar.ts`
+
+提供类型安全的通知方法，用于任务操作反馈：
+
+```tsx
+import { useSnackbar } from '@shared/hooks/useSnackbar'
+
+const MyComponent = () => {
+  const { showSuccess, showError, showWarning, showInfo } = useSnackbar()
+
+  const handleSave = async () => {
+    try {
+      await saveTask()
+      showSuccess('任务保存成功')
+    } catch (error) {
+      showError('任务保存失败')
+    }
+  }
+
+  return <button onClick={handleSave}>保存</button>
+}
+```
+
+**可用方法：**
+
+| 方法            | 用途             | 默认时长 |
+| --------------- | ---------------- | -------- |
+| `showSuccess()` | 成功通知（绿色） | 4 秒     |
+| `showError()`   | 错误通知（红色） | 6 秒     |
+| `showWarning()` | 警告通知（橙色） | 4 秒     |
+| `showInfo()`    | 信息通知（蓝色） | 4 秒     |
+| `show()`        | 默认通知（中性） | 4 秒     |
+| `close(key)`    | 关闭指定通知     | -        |
+| `closeAll()`    | 关闭所有通知     | -        |
+
+**配置选项：**
+
+```tsx
+showSuccess('消息内容', {
+  autoHideDuration: 6000, // 自定义显示时长（毫秒）
+  preventDuplicate: true, // 防止重复消息
+  action: <Button>撤销</Button>, // 自定义操作按钮
+})
+```
+
+**全局配置：**
+
+- Provider 配置：`src/shared/ui/SnackbarProvider.tsx`
+- 环境变量：`src/shared/config/env.ts`（最大数量、自动隐藏时长）
