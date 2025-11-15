@@ -6,21 +6,32 @@ import {
 } from 'notistack'
 
 /**
+ * Snackbar variant types as literal union for better type safety
+ */
+export type SnackbarVariant =
+  | 'default'
+  | 'success'
+  | 'error'
+  | 'warning'
+  | 'info'
+
+/**
  * Configuration options for snackbar notifications
+ * Using Omit utility type to exclude variant from base options
  */
 export interface SnackbarOptions extends Omit<OptionsObject, 'variant'> {
   /**
    * Optional action button configuration
    */
-  action?: OptionsObject['action']
+  readonly action?: OptionsObject['action']
   /**
    * Auto-hide duration override (milliseconds)
    */
-  autoHideDuration?: number
+  readonly autoHideDuration?: number
   /**
    * Prevent duplicate notification of the same message
    */
-  preventDuplicate?: boolean
+  readonly preventDuplicate?: boolean
 }
 
 /**
@@ -51,15 +62,33 @@ export interface SnackbarOptions extends Omit<OptionsObject, 'variant'> {
  * });
  * ```
  */
+/**
+ * Strongly typed enqueue function signature
+ */
+type EnqueueFunction = (
+  message: SnackbarMessage,
+  variant: SnackbarVariant,
+  options?: SnackbarOptions
+) => SnackbarKey
+
+/**
+ * Variant-specific function signature for better DX
+ */
+type VariantFunction = (
+  message: SnackbarMessage,
+  options?: SnackbarOptions
+) => SnackbarKey
+
 export const useSnackbar = () => {
   const { enqueueSnackbar, closeSnackbar } = useNotistackSnackbar()
 
   /**
    * Base enqueue function with default options
+   * Uses strict typing to prevent invalid variant values
    */
-  const enqueue = (
+  const enqueue: EnqueueFunction = (
     message: SnackbarMessage,
-    variant: OptionsObject['variant'],
+    variant: SnackbarVariant,
     options?: SnackbarOptions
   ): SnackbarKey => {
     return enqueueSnackbar(message, {
@@ -72,7 +101,7 @@ export const useSnackbar = () => {
    * Show success notification (green)
    * Use for: Task created, updated, deleted, completed
    */
-  const showSuccess = (
+  const showSuccess: VariantFunction = (
     message: SnackbarMessage,
     options?: SnackbarOptions
   ): SnackbarKey => {
@@ -83,7 +112,7 @@ export const useSnackbar = () => {
    * Show error notification (red)
    * Use for: API failures, validation errors, unexpected errors
    */
-  const showError = (
+  const showError: VariantFunction = (
     message: SnackbarMessage,
     options?: SnackbarOptions
   ): SnackbarKey => {
@@ -98,7 +127,7 @@ export const useSnackbar = () => {
    * Show warning notification (orange)
    * Use for: Destructive actions, important reminders, edge cases
    */
-  const showWarning = (
+  const showWarning: VariantFunction = (
     message: SnackbarMessage,
     options?: SnackbarOptions
   ): SnackbarKey => {
@@ -109,7 +138,7 @@ export const useSnackbar = () => {
    * Show info notification (blue)
    * Use for: Helpful tips, feature explanations, non-critical updates
    */
-  const showInfo = (
+  const showInfo: VariantFunction = (
     message: SnackbarMessage,
     options?: SnackbarOptions
   ): SnackbarKey => {
@@ -120,7 +149,7 @@ export const useSnackbar = () => {
    * Show default notification (neutral)
    * Use for: General messages without semantic meaning
    */
-  const show = (
+  const show: VariantFunction = (
     message: SnackbarMessage,
     options?: SnackbarOptions
   ): SnackbarKey => {
@@ -160,6 +189,30 @@ export const useSnackbar = () => {
 }
 
 /**
- * Type export for return value
+ * Precisely typed return interface for the hook
+ * Using explicit interface instead of ReturnType for better IDE support
  */
-export type UseSnackbarReturn = ReturnType<typeof useSnackbar>
+export interface UseSnackbarReturn {
+  // Convenience helpers (recommended for most use cases)
+  readonly showSuccess: VariantFunction
+  readonly showError: VariantFunction
+  readonly showWarning: VariantFunction
+  readonly showInfo: VariantFunction
+  readonly show: VariantFunction
+
+  // Close methods
+  readonly close: (key: SnackbarKey) => void
+  readonly closeAll: () => void
+
+  // Raw notistack methods (for advanced use cases)
+  readonly enqueueSnackbar: typeof useNotistackSnackbar extends () => infer R
+    ? R extends { enqueueSnackbar: infer E }
+      ? E
+      : never
+    : never
+  readonly closeSnackbar: typeof useNotistackSnackbar extends () => infer R
+    ? R extends { closeSnackbar: infer C }
+      ? C
+      : never
+    : never
+}

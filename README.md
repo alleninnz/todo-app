@@ -1,6 +1,15 @@
 # Todo App
 
-一个基于 React + TypeScript 待办事项应用，采用Feature-First架构。
+一个基于 React + TypeScript 开发的现代化待办事项应用，采用 Feature-First 架构设计，注重类型安全、代码质量和可维护性。
+
+## 目录
+
+- [技术栈](#技术栈)
+- [快速开始](#快速开始)
+- [文档](#-文档)
+- [项目特点](#项目特点)
+- [MVP 功能](#mvp-功能)
+- [开发规范](#开发规范)
 
 ## 技术栈
 
@@ -14,43 +23,44 @@
 - **日期处理**: Day.js
 - **代码质量**: ESLint + Prettier
 
-## 核心依赖（新增）
+## ⚡ 核心特性
 
-以下是在 Vite 基础脚手架之外额外安装的依赖：
+- ✅ **完整的 CRUD 操作** - 创建、编辑、删除任务
+- ✅ **智能状态管理** - 自动处理加载、错误、竞态条件
+- ✅ **类型安全** - TypeScript + Zod 双重类型保护
+- ✅ **优雅的 UI** - Material-UI + Tailwind CSS 现代化设计
+- ✅ **开发体验** - ESLint + Prettier 自动化代码质量控制
 
-### UI 与样式
+### 核心依赖
+
+#### UI 与样式
 
 ```bash
 pnpm add @mui/material @emotion/react @emotion/styled
-pnpm add @mui/icons-material
-pnpm add @mui/x-date-pickers
+pnpm add @mui/icons-material @mui/x-date-pickers
 pnpm add @fontsource-variable/roboto
 pnpm add -D @tailwindcss/vite tailwindcss
 ```
 
-### 状态管理与路由
+#### 状态管理与路由
 
 ```bash
-pnpm add zustand
-pnpm add react-router react-router-dom
+pnpm add zustand react-router react-router-dom
 ```
 
-### 表单与校验
+#### 表单与校验
 
 ```bash
-pnpm add react-form-hook
-pnpm add @hookform/resolvers
-pnpm add zod
+pnpm add react-form-hook @hookform/resolvers zod
 ```
 
-### HTTP 客户端与工具
+#### HTTP 客户端与工具
 
 ```bash
-pnpm add ky
-pnpm add dayjs
+pnpm add ky dayjs
 ```
 
-### 开发工具
+#### 开发工具
 
 ```bash
 pnpm add -D eslint @eslint/js eslint-plugin-react-hooks eslint-plugin-react-refresh
@@ -104,6 +114,12 @@ pnpm build
 # 预览生产版本
 pnpm preview
 ```
+
+## 📚 文档
+
+- [Custom Hooks 指南](docs/hooks.md) - useAsyncState 和 useSnackbar 详细文档
+- [项目概览](docs/overview.md) - 项目架构和设计理念
+- [实现规范](docs/implementation-spec.md) - 开发规范和最佳实践
 
 ## 项目特点
 
@@ -203,58 +219,39 @@ src/
 - 全局错误边界 (`AppErrorBoundary`) 捕获运行时错误
 - 路由错误使用 `ErrorPage` 组件展示友好错误信息
 
-### 通知系统
+### 自定义 Hooks
 
-项目使用 `notistack` 提供全局通知功能，并通过自定义 Hook 简化使用。
+项目提供了强大的自定义 Hooks，简化常见开发任务：
 
-#### useSnackbar Hook
+- **`useAsyncState`** - 异步状态管理，自动处理加载、成功、错误状态和竞态条件
+- **`useSnackbar`** - 类型安全的全局通知系统，统一用户反馈接口
 
-位置：`src/shared/hooks/useSnackbar.ts`
-
-提供类型安全的通知方法，用于任务操作反馈：
+**快速示例：**
 
 ```tsx
+import { useAsyncState } from '@shared/hooks/useAsyncState'
 import { useSnackbar } from '@shared/hooks/useSnackbar'
 
-const MyComponent = () => {
-  const { showSuccess, showError, showWarning, showInfo } = useSnackbar()
+function TaskForm() {
+  const { showSuccess, showError } = useSnackbar()
 
-  const handleSave = async () => {
-    try {
-      await saveTask()
-      showSuccess('任务保存成功')
-    } catch (error) {
-      showError('任务保存失败')
-    }
+  const { execute, isLoading } = useAsyncState<Task>({
+    onSuccess: task => showSuccess(`任务 "${task.title}" 已创建`),
+    onError: error => showError(error.message),
+  })
+
+  const handleSubmit = (values: TaskInput) => {
+    execute(() => api.createTask(values))
   }
 
-  return <button onClick={handleSave}>保存</button>
+  return (
+    <form onSubmit={handleSubmit}>
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? '创建中...' : '创建任务'}
+      </button>
+    </form>
+  )
 }
 ```
 
-**可用方法：**
-
-| 方法            | 用途             | 默认时长 |
-| --------------- | ---------------- | -------- |
-| `showSuccess()` | 成功通知（绿色） | 4 秒     |
-| `showError()`   | 错误通知（红色） | 6 秒     |
-| `showWarning()` | 警告通知（橙色） | 4 秒     |
-| `showInfo()`    | 信息通知（蓝色） | 4 秒     |
-| `show()`        | 默认通知（中性） | 4 秒     |
-| `close(key)`    | 关闭指定通知     | -        |
-| `closeAll()`    | 关闭所有通知     | -        |
-
-**配置选项：**
-
-```tsx
-showSuccess('消息内容', {
-  autoHideDuration: 6000, // 自定义显示时长（毫秒）
-  preventDuplicate: true, // 防止重复消息
-  action: <Button>撤销</Button>, // 自定义操作按钮
-})
-```
-
-**全局配置：**
-
-- Provider 配置：`src/shared/ui/SnackbarProvider.tsx`
-- 环境变量：`src/shared/config/env.ts`（最大数量、自动隐藏时长）
+📖 **详细文档**: [Custom Hooks 指南](docs/hooks.md)

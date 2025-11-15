@@ -91,9 +91,14 @@ Follow phases sequentially; each step references the files above and includes gu
   - Includes close methods: `close(key)`, `closeAll()`
   - Type-safe with `SnackbarOptions` interface
   - Comprehensive tests and documentation in `README.md`
-- [ ] **Async State Hook (`src/shared/hooks/useAsyncState.ts`)**
-  - `useAsyncState.ts`: manage `{ status, data, error }` with `execute(asyncFn)` pattern for reuse across hooks.
-  - _Hint_: expose discriminated union type for status (`'idle' | 'loading' | 'success' | 'error'`).
+- [x] **Async State Hook (`src/shared/hooks/useAsyncState.ts`)** ✅
+  - Manages `{ status, data, error }` state with `execute(asyncFn)` pattern
+  - Discriminated union type for status: `'idle' | 'loading' | 'success' | 'error'`
+  - Race condition protection via execution counter
+  - Lifecycle callbacks: `onStart`, `onSuccess`, `onError`, `onFinally`
+  - Derived boolean states: `isIdle`, `isLoading`, `isSuccess`, `isError`
+  - Manual state control: `setData()`, `setError()`, `reset()`
+  - Comprehensive tests with 100% coverage
 
 - [ ] **Utility Libraries (`src/shared/lib/date.ts`, `format.ts`)**
   - Date helpers: `isOverdue`, `compareByDueDate`, `formatDueDate` using Day.js; return typed comparators for sorting.
