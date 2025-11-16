@@ -35,7 +35,7 @@ describe('useAsyncState', () => {
       let promise: Promise<string | null>
       await act(async () => {
         promise = result.current.execute(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise(resolve => setTimeout(resolve, 10))
           return mockData
         })
       })
@@ -146,7 +146,7 @@ describe('useAsyncState', () => {
       let promise: Promise<string | null>
       act(() => {
         promise = result.current.execute(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise(resolve => setTimeout(resolve, 10))
           return 'success'
         })
       })
@@ -169,13 +169,13 @@ describe('useAsyncState', () => {
 
       // Start first slow execution
       const slowPromise = result.current.execute(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 100))
         return 'slow'
       })
 
       // Start second fast execution (this should win)
       const fastPromise = result.current.execute(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10))
+        await new Promise(resolve => setTimeout(resolve, 10))
         return 'fast'
       })
 
@@ -200,15 +200,15 @@ describe('useAsyncState', () => {
       // Fire multiple executions rapidly
       const promises = [
         result.current.execute(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 50))
+          await new Promise(resolve => setTimeout(resolve, 50))
           return 1
         }),
         result.current.execute(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 30))
+          await new Promise(resolve => setTimeout(resolve, 30))
           return 2
         }),
         result.current.execute(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise(resolve => setTimeout(resolve, 10))
           return 3
         }),
       ]
@@ -369,7 +369,7 @@ describe('useAsyncState', () => {
       let promise: Promise<string | null>
       act(() => {
         promise = result.current.execute(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise(resolve => setTimeout(resolve, 10))
           return 'data'
         })
       })

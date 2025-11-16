@@ -36,12 +36,12 @@ type AsyncState<T, E = Error> =
   | { status: 'error'; data: T | null; error: E }
 
 interface UseAsyncStateOptions<T, E = Error> {
-  initialData?: T | null        // 初始数据
-  onStart?: () => void          // 开始加载时触发
+  initialData?: T | null // 初始数据
+  onStart?: () => void // 开始加载时触发
   onSuccess?: (data: T) => void // 加载成功时触发
-  onError?: (error: E) => void  // 加载失败时触发
-  onFinally?: () => void        // 加载完成时触发（无论成功或失败）
-  resetOnUnmount?: boolean      // 卸载时是否重置计数器（默认 true）
+  onError?: (error: E) => void // 加载失败时触发
+  onFinally?: () => void // 加载完成时触发（无论成功或失败）
+  resetOnUnmount?: boolean // 卸载时是否重置计数器（默认 true）
 }
 ```
 
@@ -49,19 +49,19 @@ interface UseAsyncStateOptions<T, E = Error> {
 
 #### 返回值
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `status` | `AsyncStatus` | 当前状态：`'idle'` \| `'loading'` \| `'success'` \| `'error'` |
-| `data` | `T \| null` | 成功时的数据（仅 `status === 'success'` 时保证非 null） |
-| `error` | `E \| null` | 失败时的错误（仅 `status === 'error'` 时保证非 null） |
-| `execute()` | `(asyncFn: () => Promise<T>) => Promise<T \| null>` | 执行异步函数并管理状态 |
-| `reset()` | `() => void` | 重置到初始状态 |
-| `setData()` | `(data: T \| null) => void` | 手动设置数据（用于乐观更新） |
-| `setError()` | `(error: E \| null) => void` | 手动设置错误 |
-| `isIdle` | `boolean` | 是否为初始状态 |
-| `isLoading` | `boolean` | 是否正在加载 |
-| `isSuccess` | `boolean` | 是否加载成功 |
-| `isError` | `boolean` | 是否加载失败 |
+| 属性         | 类型                                                | 说明                                                          |
+| ------------ | --------------------------------------------------- | ------------------------------------------------------------- |
+| `status`     | `AsyncStatus`                                       | 当前状态：`'idle'` \| `'loading'` \| `'success'` \| `'error'` |
+| `data`       | `T \| null`                                         | 成功时的数据（仅 `status === 'success'` 时保证非 null）       |
+| `error`      | `E \| null`                                         | 失败时的错误（仅 `status === 'error'` 时保证非 null）         |
+| `execute()`  | `(asyncFn: () => Promise<T>) => Promise<T \| null>` | 执行异步函数并管理状态                                        |
+| `reset()`    | `() => void`                                        | 重置到初始状态                                                |
+| `setData()`  | `(data: T \| null) => void`                         | 手动设置数据（用于乐观更新）                                  |
+| `setError()` | `(error: E \| null) => void`                        | 手动设置错误                                                  |
+| `isIdle`     | `boolean`                                           | 是否为初始状态                                                |
+| `isLoading`  | `boolean`                                           | 是否正在加载                                                  |
+| `isSuccess`  | `boolean`                                           | 是否加载成功                                                  |
+| `isError`    | `boolean`                                           | 是否加载失败                                                  |
 
 ### 使用示例
 
@@ -200,8 +200,8 @@ function TaskManager() {
 
 ```tsx
 // 用户快速连续执行两次搜索
-execute(() => searchTasks('React'))  // 执行 #1
-execute(() => searchTasks('TypeScript'))  // 执行 #2
+execute(() => searchTasks('React')) // 执行 #1
+execute(() => searchTasks('TypeScript')) // 执行 #2
 
 // 即使 #1 比 #2 后完成，状态也不会被 #1 的结果覆盖
 // 最终显示的一定是最新搜索（#2）的结果
@@ -219,10 +219,10 @@ interface ApiError {
 }
 
 const { error, execute } = useAsyncState<Task, ApiError>({
-  onError: (err) => {
+  onError: err => {
     console.log('错误代码:', err.code)
     console.log('错误消息:', err.message)
-  }
+  },
 })
 ```
 
@@ -261,6 +261,7 @@ function Dashboard() {
 ### 最佳实践
 
 1. **总是在 useEffect 中调用 execute**
+
    ```tsx
    // ✅ 推荐
    useEffect(() => {
@@ -272,6 +273,7 @@ function Dashboard() {
    ```
 
 2. **使用派生布尔值而非直接比较 status**
+
    ```tsx
    // ✅ 推荐
    if (isLoading) return <Spinner />
@@ -281,6 +283,7 @@ function Dashboard() {
    ```
 
 3. **乐观更新时记得处理失败回滚**
+
    ```tsx
    // ✅ 推荐
    const oldData = data
@@ -296,8 +299,8 @@ function Dashboard() {
    ```tsx
    // ✅ 推荐：在配置中处理副作用
    useAsyncState({
-     onSuccess: (data) => navigate('/success'),
-     onError: (err) => showError(err.message),
+     onSuccess: data => navigate('/success'),
+     onError: err => showError(err.message),
    })
    ```
 
@@ -321,25 +324,26 @@ function Dashboard() {
 
 #### 方法列表
 
-| 方法 | 用途 | 默认时长 | 颜色 |
-|------|------|----------|------|
-| `showSuccess(message, options?)` | 成功通知 | 4 秒 | 绿色 |
-| `showError(message, options?)` | 错误通知 | 6 秒 | 红色 |
-| `showWarning(message, options?)` | 警告通知 | 4 秒 | 橙色 |
-| `showInfo(message, options?)` | 信息通知 | 4 秒 | 蓝色 |
-| `show(message, options?)` | 默认通知 | 4 秒 | 中性灰 |
-| `close(key)` | 关闭指定通知 | - | - |
-| `closeAll()` | 关闭所有通知 | - | - |
+| 方法                             | 用途         | 默认时长 | 颜色   |
+| -------------------------------- | ------------ | -------- | ------ |
+| `showSuccess(message, options?)` | 成功通知     | 4 秒     | 绿色   |
+| `showError(message, options?)`   | 错误通知     | 6 秒     | 红色   |
+| `showWarning(message, options?)` | 警告通知     | 4 秒     | 橙色   |
+| `showInfo(message, options?)`    | 信息通知     | 4 秒     | 蓝色   |
+| `show(message, options?)`        | 默认通知     | 4 秒     | 中性灰 |
+| `close(key)`                     | 关闭指定通知 | -        | -      |
+| `closeAll()`                     | 关闭所有通知 | -        | -      |
 
 #### 配置选项
 
 ```typescript
 interface SnackbarOptions {
-  autoHideDuration?: number      // 自动隐藏时长（毫秒）
-  preventDuplicate?: boolean     // 防止重复消息（默认 false）
-  persist?: boolean              // 是否持久显示（默认 false）
-  action?: React.ReactNode       // 自定义操作按钮
-  anchorOrigin?: {               // 显示位置
+  autoHideDuration?: number // 自动隐藏时长（毫秒）
+  preventDuplicate?: boolean // 防止重复消息（默认 false）
+  persist?: boolean // 是否持久显示（默认 false）
+  action?: React.ReactNode // 自定义操作按钮
+  anchorOrigin?: {
+    // 显示位置
     vertical: 'top' | 'bottom'
     horizontal: 'left' | 'center' | 'right'
   }
@@ -379,8 +383,8 @@ function TaskForm() {
   const { showSuccess, showError } = useSnackbar()
 
   const { execute, isLoading } = useAsyncState<Task>({
-    onSuccess: (task) => showSuccess(`任务 "${task.title}" 已创建`),
-    onError: (error) => showError(error.message || '操作失败'),
+    onSuccess: task => showSuccess(`任务 "${task.title}" 已创建`),
+    onError: error => showError(error.message || '操作失败'),
   })
 
   const handleSubmit = (values: TaskInput) => {
@@ -401,13 +405,9 @@ function AdvancedExample() {
 
   const handleWarning = () => {
     const key = showWarning('此操作不可撤销', {
-      autoHideDuration: 8000,     // 显示 8 秒
-      preventDuplicate: true,      // 防止重复显示
-      action: (
-        <Button onClick={() => close(key)}>
-          知道了
-        </Button>
-      ),
+      autoHideDuration: 8000, // 显示 8 秒
+      preventDuplicate: true, // 防止重复显示
+      action: <Button onClick={() => close(key)}>知道了</Button>,
     })
   }
 
@@ -484,13 +484,14 @@ import { SnackbarProvider as NotistackProvider } from 'notistack'
 export function SnackbarProvider({ children }: { children: React.ReactNode }) {
   return (
     <NotistackProvider
-      maxSnack={3}                    // 最多同时显示 3 个通知
-      autoHideDuration={4000}         // 默认 4 秒后隐藏
-      anchorOrigin={{                 // 默认显示位置
+      maxSnack={3} // 最多同时显示 3 个通知
+      autoHideDuration={4000} // 默认 4 秒后隐藏
+      anchorOrigin={{
+        // 默认显示位置
         vertical: 'top',
         horizontal: 'right',
       }}
-      preventDuplicate                // 全局防止重复通知
+      preventDuplicate // 全局防止重复通知
     >
       {children}
     </NotistackProvider>
@@ -514,27 +515,31 @@ export const env = {
 ### 最佳实践
 
 1. **为不同场景选择合适的通知类型**
+
    ```tsx
-   showSuccess('保存成功')        // 操作成功
-   showError('网络连接失败')      // 错误提示
-   showWarning('即将过期')        // 警告信息
-   showInfo('正在同步数据...')    // 一般信息
+   showSuccess('保存成功') // 操作成功
+   showError('网络连接失败') // 错误提示
+   showWarning('即将过期') // 警告信息
+   showInfo('正在同步数据...') // 一般信息
    ```
 
 2. **错误通知显示时间可以更长**
+
    ```tsx
    showError('操作失败', { autoHideDuration: 6000 })
    ```
 
 3. **防止重复通知**
+
    ```tsx
    showSuccess('已添加到收藏', { preventDuplicate: true })
    ```
 
 4. **提供操作按钮增强交互**
+
    ```tsx
    showWarning('删除后无法恢复', {
-     action: <Button onClick={handleUndo}>撤销</Button>
+     action: <Button onClick={handleUndo}>撤销</Button>,
    })
    ```
 
@@ -542,7 +547,7 @@ export const env = {
    ```tsx
    useAsyncState({
      onSuccess: () => showSuccess('操作成功'),
-     onError: (err) => showError(err.message),
+     onError: err => showError(err.message),
    })
    ```
 
@@ -574,7 +579,7 @@ function TaskManager() {
 
   // 创建任务
   const { execute: createTask } = useAsyncState<Task>({
-    onSuccess: (task) => {
+    onSuccess: task => {
       showSuccess(`任务 "${task.title}" 已创建`)
       fetchTasks(() => api.fetchTasks()) // 刷新列表
     },
