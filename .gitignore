@@ -40,6 +40,8 @@ coverage/
 # misc
 .serena/
 .pnpm-store/
+CLAUDE.md
+.claude/
 
 *storybook.log
 storybook-static
