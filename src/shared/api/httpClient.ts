@@ -1,3 +1,53 @@
+/**
+ * HTTP Client with Automatic Case Conversion Interceptors
+ *
+ * This module provides a configured HTTP client built on Ky with automatic
+ * case conversion between frontend (camelCase) and backend (snake_case).
+ *
+ * ## Key Features
+ * - **Automatic Case Conversion**: Request payloads converted to snake_case,
+ *   responses converted to camelCase
+ * - **Error Normalization**: HTTPError transformed to ApiError with parsed data
+ * - **Request Retry**: Configurable retry logic for failed requests
+ * - **Debug Logging**: Comprehensive request/response logging when enabled
+ * - **Type Safety**: Full TypeScript support with generic types
+ *
+ * ## Usage Example
+ * ```ts
+ * // Frontend sends camelCase
+ * await httpClient.post('tasks', {
+ *   json: {
+ *     taskTitle: 'Buy groceries',     // camelCase
+ *     dueDate: '2024-01-15',
+ *     priorityLevel: 'high',
+ *   }
+ * })
+ *
+ * // Backend receives snake_case
+ * // {
+ * //   task_title: 'Buy groceries',    // snake_case
+ * //   due_date: '2024-01-15',
+ * //   priority_level: 'high'
+ * // }
+ *
+ * // Backend returns snake_case
+ * // {
+ * //   task_id: '123',
+ * //   task_title: 'Buy groceries',
+ * //   created_at: '2024-01-10T10:00:00Z'
+ * // }
+ *
+ * // Frontend receives camelCase
+ * const task = await httpClient.get<Task>('tasks/123')
+ * // {
+ * //   taskId: '123',                   // camelCase
+ * //   taskTitle: 'Buy groceries',
+ * //   createdAt: '2024-01-10T10:00:00Z'
+ * // }
+ * ```
+ *
+ * @module shared/api/httpClient
+ */
 import ky, {
   HTTPError,
   type Input,
@@ -10,6 +60,63 @@ import { env } from '@shared/config/env'
 
 const RETRYABLE_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
 const RETRYABLE_STATUS_CODES = [408, 413, 425, 429, 500, 502, 503, 504] as const
+
+/**
+ * Case Conversion Utilities
+ * Handles transformation between camelCase (frontend) and snake_case (backend)
+ */
+
+const toSnakeCase = (str: string): string => {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+}
+
+const toCamelCase = (str: string): string => {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+}
+
+/**
+ * Recursively transforms object keys using the provided transformer function
+ * Handles nested objects and arrays
+ */
+const transformKeys = (
+  obj: unknown,
+  transformer: (key: string) => string
+): unknown => {
+  if (obj === null || obj === undefined) {
+    return obj
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => transformKeys(item, transformer))
+  }
+
+  if (typeof obj === 'object' && obj.constructor === Object) {
+    return Object.entries(obj).reduce(
+      (acc, [key, value]) => {
+        const newKey = transformer(key)
+        acc[newKey] = transformKeys(value, transformer)
+        return acc
+      },
+      {} as Record<string, unknown>
+    )
+  }
+
+  return obj
+}
+
+/**
+ * Converts object keys from camelCase to snake_case
+ * Used for request payloads going to the backend
+ */
+const toSnakeCaseKeys = (obj: unknown): unknown =>
+  transformKeys(obj, toSnakeCase)
+
+/**
+ * Converts object keys from snake_case to camelCase
+ * Used for response payloads coming from the backend
+ */
+const toCamelCaseKeys = (obj: unknown): unknown =>
+  transformKeys(obj, toCamelCase)
 
 /**
  * Enhanced debug logging with structured output
@@ -195,6 +302,31 @@ const http: KyInstance = ky.create({
           request.headers.set('Content-Type', 'application/json')
         }
 
+        // Transform request body to snake_case for backend
+        if (['POST', 'PUT', 'PATCH'].includes(method)) {
+          try {
+            const contentType = request.headers.get('Content-Type')
+            if (contentType?.includes('application/json')) {
+              const bodyClone = request.clone()
+              const originalBody = await bodyClone.json()
+              const transformedBody = toSnakeCaseKeys(originalBody)
+
+              // Replace the request body with transformed version
+              const newRequest = new Request(request, {
+                body: JSON.stringify(transformedBody),
+              })
+
+              // Copy all properties to the original request
+              Object.assign(request, newRequest)
+            }
+          } catch (error) {
+            // If body parsing fails, continue with original request
+            if (env.VITE_ENABLE_DEBUG) {
+              console.warn('[http] Failed to transform request body:', error)
+            }
+          }
+        }
+
         // Enhanced logging with request body
         if (env.VITE_ENABLE_DEBUG) {
           const body = await extractRequestBody(request)
@@ -209,7 +341,44 @@ const http: KyInstance = ky.create({
       async (request, _options, response) => {
         const method = request.method?.toUpperCase() ?? 'GET'
 
-        // Enhanced logging with response body and timing
+        // Transform response body from snake_case to camelCase
+        if (response.ok) {
+          try {
+            const contentType = response.headers.get('Content-Type')
+            if (contentType?.includes('application/json')) {
+              const originalBody = await response.json()
+              const transformedBody = toCamelCaseKeys(originalBody)
+
+              // Create a new response with transformed body
+              const transformedResponse = new Response(
+                JSON.stringify(transformedBody),
+                {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers,
+                }
+              )
+
+              // Enhanced logging with transformed response body
+              if (env.VITE_ENABLE_DEBUG) {
+                debugLog('←', method, request.url, {
+                  status: response.status,
+                  headers: extractHeaders(response.headers),
+                  body: transformedBody,
+                })
+              }
+
+              return transformedResponse
+            }
+          } catch (error) {
+            // If transformation fails, log and return original response
+            if (env.VITE_ENABLE_DEBUG) {
+              console.warn('[http] Failed to transform response body:', error)
+            }
+          }
+        }
+
+        // Enhanced logging with response body for non-JSON or failed transformations
         if (env.VITE_ENABLE_DEBUG) {
           const body = await parseResponsePayload(response)
           debugLog('←', method, request.url, {
