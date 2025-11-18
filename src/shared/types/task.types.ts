@@ -48,7 +48,7 @@ export type TaskStatus = 'all' | 'active' | 'completed'
  * This is the primary data structure used throughout the frontend application.
  *
  * @remarks
- * - Uses ISO 8601 date strings for consistency with API responses
+ * - Uses date strings in dd-mm-YYYY format for consistency with API responses
  * - Avoids Date objects to prevent serialization issues
  * - Backend field mapping (auto-converted by httpClient):
  *   - `createdAt` ↔ `created_at`
@@ -62,8 +62,8 @@ export type TaskStatus = 'all' | 'active' | 'completed'
  *   description: 'Write comprehensive API docs',
  *   priority: 'high',
  *   completed: false,
- *   createdAt: '2025-11-17T10:00:00Z',
- *   dueDate: '2025-11-20T23:59:59Z',
+ *   createdAt: '17-11-2025',
+ *   dueDate: '20-11-2025',
  * }
  * ```
  */
@@ -78,9 +78,9 @@ export interface Task {
   priority: TaskPriority
   /** Completion status */
   completed: boolean
-  /** ISO 8601 date string when task was created (server-generated) */
+  /** Date string in dd-mm-YYYY format when task was created (server-generated) */
   createdAt: string
-  /** Optional ISO 8601 date string for task deadline */
+  /** Optional date string in dd-mm-YYYY format for task deadline */
   dueDate?: string
 }
 
@@ -102,7 +102,7 @@ export interface Task {
  *   description: 'Task details',
  *   priority: 'medium',
  *   completed: false,
- *   dueDate: '2025-12-01T00:00:00Z',
+ *   dueDate: '01-12-2025',
  * }
  *
  * // Used in API calls
