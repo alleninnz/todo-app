@@ -55,30 +55,27 @@ Each phase has explicit deliverables and verification steps. Finish all subtasks
 
 ### Phase B — Task Feature Slice
 
-- [ ] 1. **API Paths & Formatting**
-  - `task.paths.ts`: constants for list + detail endpoints.
-  - API responses already match the domain model, so skip extra mapping layers. Provide light helpers (if needed) to normalize dates or default optional fields without introducing additional request/response-specific types.
-- [ ] 2. **Service Layer (`task.service.ts`)**
+- [ ] 1. **Service Layer (`task.service.ts`)**
   - Implement CRUD helpers (`fetchTasks`, `createTask`, `updateTask`, `deleteTask`, `toggleTaskComplete`).
   - Accept `AbortSignal` for fetches; propagate normalized errors.
-- [ ] 3. **Zustand Store (`tasks.store.ts`)**
+- [ ] 2. **Zustand Store (`tasks.store.ts`)**
   - State: `items`, `isLoading`, `error`, `filters`, `sort`, `selectedTaskId`.
   - Actions: `setTasks`, `addTask`, `updateTask`, `removeTask`, `setFilters`, `setSort`, `setLoading`, `setError`, `selectTask`.
   - Provide selectors + hooks for components; expose via barrel.
-- [ ] 4. **Hooks**
+- [ ] 3. **Hooks**
   - `useTaskActions.ts`: orchestrate API calls, optimistic updates, and snackbar feedback. Include rollback logic when requests fail.
   - `useTaskDetail.ts`: derive single task by id; fetch detail on demand if missing.
   - Both hooks reuse `useAsyncState` and share error messaging helpers.
-- [ ] 5. **UI Components**
+- [ ] 4. **UI Components**
   - `TaskList.tsx`: orchestrate loading/error/empty states, render list with virtualization-ready structure.
   - `TaskItem.tsx`: show checkbox, title, metadata chips, inline menu for edit/delete; respect accessibility (aria labels, focus order).
   - `TaskForm.tsx`: React Hook Form + MUI inputs (title, description, due date picker, priority select). Integrate Zod resolver and inline validation messaging.
   - `TaskEmptyState.tsx`, `TaskErrorState.tsx`: dedicated components with CTA/retry actions.
   - `TaskListSkeleton.tsx` (if not present) for consistent loading visuals.
-- [ ] 6. **Stories & Tests**
+- [ ] 5. **Stories & Tests**
   - Component stories per UI state, using MSW to mock API responses.
   - Vitest suites covering services (with MSW), store reducers, and hooks (simulate optimistic updates + error rollback).
-- [ ] 7. **Verification**
+- [ ] 6. **Verification**
   - `pnpm test -- features/tasks` and `pnpm storybook` (or `pnpm test-storybook`) to validate coverage and docs.
 
 ### Phase C — Lists (Filtering & Sorting)
@@ -99,9 +96,9 @@ Each phase has explicit deliverables and verification steps. Finish all subtasks
 
 ### Phase D — Application Shell & Composition
 
-- [ ] 1. **Providers (`src/app/providers.tsx`)**
+- [x] 1. **Providers (`src/app/providers.tsx`)**
   - Ensure React Router, MUI theme provider, Snackbar provider, and any query clients are wired once. Confirm MSW only starts in dev/test.
-- [ ] 2. **Routing (`src/app/routes.tsx`, `src/app/App.tsx`)**
+- [x] 2. **Routing (`src/app/routes.tsx`, `src/app/App.tsx`)**
   - Register Tasks route as default; add ErrorBoundary wrappers per route; lazy-load future routes.
 - [ ] 3. **Layout (`src/shared/ui/AppLayout.tsx`, `AppErrorBoundary.tsx`, `ErrorPage.tsx`, `LoadingSkeleton.tsx`)**
   - Implement responsive layout with header, content container, and slots for toasts.
