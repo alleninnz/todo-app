@@ -7,8 +7,8 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { RouterProvider } from 'react-router-dom'
 import { router } from './routes'
 
-// Initialize MSW in development mode when feature flag is enabled
-if (env.VITE_ENABLE_MSW && env.VITE_ENV === 'development') {
+// Initialize MSW when feature flag is enabled
+if (env.VITE_ENABLE_MSW && import.meta.env.DEV) {
   const { worker } = await import('@/test/mocks/browser')
   await worker.start({
     onUnhandledRequest: 'warn', // Log unhandled API requests to console

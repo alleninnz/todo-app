@@ -25,7 +25,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
-    "@mui/x-date-pickers": "^8.18.0",
+    "@mui/x-date-pickers": "^8.19.0",
     "dayjs": "^1.11.19",
     "ky": "^1.14.0",
     "notistack": "^3.0.2",
@@ -54,8 +54,8 @@
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/browser-playwright": "^4.0.10",
-    "@vitest/coverage-v8": "^4.0.10",
+    "@vitest/browser-playwright": "^4.0.12",
+    "@vitest/coverage-v8": "^4.0.12",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
@@ -74,7 +74,7 @@
     "typescript-eslint": "^8.47.0",
     "vite": "npm:rolldown-vite@7.2.3",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.0.10"
+    "vitest": "^4.0.12"
   },
   "pnpm": {
     "overrides": {
