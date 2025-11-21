@@ -197,11 +197,32 @@ describe('Task Schema Validation', () => {
 
     describe('dueDate validation - format', () => {
       it('should accept valid dd-mm-YYYY dates', () => {
+        // Generate dynamic dates to ensure tests work on any day
+        const today = new Date()
+
+        // Tomorrow
+        const tomorrow = new Date(today)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const tomorrowStr = `${String(tomorrow.getDate()).padStart(2, '0')}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${tomorrow.getFullYear()}`
+
+        // Next year (same day/month)
+        const nextYear = new Date(today)
+        nextYear.setFullYear(nextYear.getFullYear() + 1)
+        const nextYearStr = `${String(nextYear.getDate()).padStart(2, '0')}-${String(nextYear.getMonth() + 1).padStart(2, '0')}-${nextYear.getFullYear()}`
+
+        // End of current year
+        const endOfYear = new Date(today.getFullYear(), 11, 31) // Dec 31
+        const endOfYearStr = `31-12-${endOfYear.getFullYear()}`
+
+        // Leap year date (Feb 29, 2028 - guaranteed future leap year)
+        const leapYear = new Date(2028, 1, 29) // Feb 29, 2028
+        const leapYearStr = `29-02-${leapYear.getFullYear()}`
+
         const validDates = [
-          '20-11-2025',
-          '01-01-2026',
-          '31-12-2025',
-          '29-02-2028', // Leap year (future)
+          tomorrowStr, // Tomorrow (dynamic)
+          nextYearStr, // Next year (dynamic)
+          endOfYearStr, // End of this year (dynamic)
+          leapYearStr, // Leap year (Feb 29, 2028)
         ]
 
         validDates.forEach(dueDate => {
@@ -325,25 +346,45 @@ describe('Task Schema Validation', () => {
       })
 
       it('should validate leap years correctly', () => {
-        // Valid leap year (future date)
+        // Find next future leap year
+        const today = new Date()
+        let futureLeapYear = today.getFullYear() + 1
+
+        // Find the next leap year from current year
+        while (!isLeapYear(futureLeapYear)) {
+          futureLeapYear++
+        }
+
+        // Find next non-leap year
+        let futureNonLeapYear = futureLeapYear + 1
+        while (isLeapYear(futureNonLeapYear)) {
+          futureNonLeapYear++
+        }
+
+        // Valid leap year (Feb 29 in future leap year)
         const validLeap = taskFormSchema.safeParse({
           title: 'Task',
           priority: 'none',
           completed: false,
-          dueDate: '29-02-2028',
+          dueDate: `29-02-${futureLeapYear}`,
         })
         expect(validLeap.success).toBe(true)
 
-        // Invalid non-leap year
+        // Invalid non-leap year (Feb 29 in future non-leap year)
         const invalidLeap = taskFormSchema.safeParse({
           title: 'Task',
           priority: 'none',
           completed: false,
-          dueDate: '29-02-2027',
+          dueDate: `29-02-${futureNonLeapYear}`,
         })
         expect(invalidLeap.success).toBe(false)
       })
     })
+
+    // Helper function to check if a year is a leap year
+    function isLeapYear(year: number): boolean {
+      return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+    }
 
     describe('dueDate validation - past dates', () => {
       it('should reject past dates', () => {
@@ -406,12 +447,17 @@ describe('Task Schema Validation', () => {
 
   describe('taskDraftSchema', () => {
     it('should validate new task creation payloads', () => {
+      // Generate dynamic future date
+      const futureDate = new Date()
+      futureDate.setMonth(futureDate.getMonth() + 2) // 2 months from now
+      const futureDateStr = `${String(futureDate.getDate()).padStart(2, '0')}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${futureDate.getFullYear()}`
+
       const result = taskDraftSchema.safeParse({
         title: 'New Task',
         description: 'Task details',
         priority: 'medium',
         completed: false,
-        dueDate: '01-12-2025',
+        dueDate: futureDateStr,
       })
       expect(result.success).toBe(true)
     })
