@@ -100,7 +100,7 @@ Each phase has explicit deliverables and verification steps. Finish all subtasks
   - Ensure React Router, MUI theme provider, Snackbar provider, and any query clients are wired once. Confirm MSW only starts in dev/test.
 - [x] 2. **Routing (`src/app/routes.tsx`, `src/app/App.tsx`)**
   - Register Tasks route as default; add ErrorBoundary wrappers per route; lazy-load future routes.
-- [ ] 3. **Layout (`src/shared/ui/AppLayout.tsx`, `AppErrorBoundary.tsx`, `ErrorPage.tsx`, `LoadingSkeleton.tsx`)**
+- [x] 3. **Layout (`src/shared/ui/AppLayout.tsx`, `AppErrorBoundary.tsx`, `ErrorPage.tsx`, `LoadingSkeleton.tsx`)**
   - Implement responsive layout with header, content container, and slots for toasts.
   - Update error boundary fallback to use new error/empty components.
 - [ ] 4. **Tasks Page (`src/pages/TasksPage.tsx`)**
