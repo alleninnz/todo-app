@@ -1,9 +1,6 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  // Environment
-  readonly VITE_ENV: string
-
   // Development & Debugging
   readonly VITE_ENABLE_DEBUG: string
 

@@ -3,11 +3,6 @@ import { z } from 'zod'
 // Define the schema for environment variables
 // with zod validation and default values
 const envSchema = z.object({
-  VITE_ENV: z
-    .string()
-    .refine(val => ['development', 'test', 'production'].includes(val), {
-      message: 'VITE_ENV must be one of: development, test, production',
-    }),
   VITE_ENABLE_DEBUG: z.coerce.boolean().default(false),
   VITE_ENABLE_MSW: z.coerce.boolean().default(false),
   VITE_API_RETRY_COUNT: z.coerce
