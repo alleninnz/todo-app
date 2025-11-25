@@ -1,5 +1,5 @@
-import { memo } from 'react'
 import { Box, Skeleton, Stack } from '@mui/material'
+import { memo } from 'react'
 
 /**
  * Skeleton dimension constants for consistent sizing
@@ -363,7 +363,7 @@ export const LoadingSkeleton = (props: LoadingSkeletonProps) => {
 
   // Graceful degradation for unknown variants
   if (!renderFn) {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.warn(
         `[LoadingSkeleton] Unknown variant: "${variant}". Falling back to rectangular skeleton. ` +
           `Valid variants: ${Object.keys(SKELETON_VARIANTS).join(', ')}`

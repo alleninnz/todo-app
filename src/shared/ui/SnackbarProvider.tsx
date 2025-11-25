@@ -1,4 +1,3 @@
-import { memo, type ReactNode } from 'react'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import { IconButton } from '@mui/material'
 import {
@@ -6,16 +5,9 @@ import {
   closeSnackbar,
   type SnackbarKey,
 } from 'notistack'
+import { memo, type ReactNode } from 'react'
 
-/**
- * Snackbar configuration constants
- */
-const SNACKBAR_CONFIG = {
-  /** Maximum number of snackbars displayed simultaneously */
-  MAX_SNACKBARS: 3,
-  /** Auto-hide duration in milliseconds (4 seconds) */
-  AUTO_HIDE_DURATION: 4000,
-} as const
+import { env } from '../config/env'
 
 /**
  * Props for SnackbarProvider
@@ -143,9 +135,9 @@ export const SnackbarProvider = ({ children }: SnackbarProviderProps) => {
   return (
     <NotistackProvider
       // Max number of snackbars displayed simultaneously
-      maxSnack={SNACKBAR_CONFIG.MAX_SNACKBARS}
+      maxSnack={env.VITE_SNACKBAR_MAX_COUNT}
       // Auto-hide duration (4 seconds gives users time to read task feedback)
-      autoHideDuration={SNACKBAR_CONFIG.AUTO_HIDE_DURATION}
+      autoHideDuration={env.VITE_SNACKBAR_AUTO_HIDE}
       // Prevent duplicate messages (useful for preventing multiple API error notifications)
       preventDuplicate
       // Compact style for better space efficiency

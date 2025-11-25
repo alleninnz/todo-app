@@ -86,13 +86,13 @@ describe('date utilities', () => {
 
     it('should format "tomorrow" for exactly one day from now', () => {
       // 1 day and 1 hour from now to ensure it's clearly tomorrow
-      const date = new Date(baseTime + (25 * 60 * 60 * 1000))
+      const date = new Date(baseTime + 25 * 60 * 60 * 1000)
       expect(formatRelativeTime(date, baseDate)).toBe('tomorrow')
     })
 
     it('should format "in X days" for future days', () => {
       // 3 days and 12 hours from now
-      const date = new Date(baseTime + (3.5 * 24 * 60 * 60 * 1000))
+      const date = new Date(baseTime + 3.5 * 24 * 60 * 60 * 1000)
       expect(formatRelativeTime(date, baseDate)).toBe('in 3 days')
     })
 
@@ -113,7 +113,7 @@ describe('date utilities', () => {
 
     it('should use current date when baseDate is not provided', () => {
       // 5 minutes ago from current time - BUG: returns "yesterday"
-      const pastDate = new Date(Date.now() - (5.5 * 60 * 1000))
+      const pastDate = new Date(Date.now() - 5.5 * 60 * 1000)
       const result = formatRelativeTime(pastDate)
       expect(result).toBe('yesterday')
     })
@@ -212,7 +212,7 @@ describe('date utilities', () => {
         '01/15/2025',
       ]
 
-      dates.forEach((dateStr) => {
+      dates.forEach(dateStr => {
         const result = parseDate(dateStr)
         expect(result).toBeInstanceOf(Date)
         expect(result?.getTime()).not.toBeNaN()

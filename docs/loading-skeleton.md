@@ -117,12 +117,12 @@ function TaskList() {
 
 ## Variants Reference
 
-| Variant    | Description                             | Props                                      |
-| ---------- | --------------------------------------- | ------------------------------------------ |
-| `taskCard` | Mimics task item structure              | `animated?`                                |
-| `taskList` | Multiple task card skeletons            | `count?` (default: 3), `animated?`         |
-| `text`     | Single or multi-line text placeholder   | `width?`, `lines?` (default: 1), `animated?` |
-| `circular` | Round skeleton for avatars/icons        | `width?` (default: 40), `height?`, `animated?` |
+| Variant    | Description                           | Props                                          |
+| ---------- | ------------------------------------- | ---------------------------------------------- |
+| `taskCard` | Mimics task item structure            | `animated?`                                    |
+| `taskList` | Multiple task card skeletons          | `count?` (default: 3), `animated?`             |
+| `text`     | Single or multi-line text placeholder | `width?`, `lines?` (default: 1), `animated?`   |
+| `circular` | Round skeleton for avatars/icons      | `width?` (default: 40), `height?`, `animated?` |
 
 ## Architecture Benefits
 

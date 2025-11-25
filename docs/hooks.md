@@ -481,7 +481,11 @@ function BulkActions() {
 // src/shared/ui/SnackbarProvider.tsx
 import { SnackbarProvider as NotistackProvider } from 'notistack'
 
-export function SnackbarProvider({ children }: { children: React.ReactNode }) {
+export const SnackbarProvider = ({
+  children,
+}: {
+  children: React.ReactNode
+}) => {
   return (
     <NotistackProvider
       maxSnack={3} // 最多同时显示 3 个通知

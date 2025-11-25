@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { SnackbarProvider } from 'notistack'
 import { describe, expect, it } from 'vitest'
 
@@ -48,7 +48,7 @@ describe('useSnackbar', () => {
     )
 
     const button = screen.getByText('Show Success')
-    button.click()
+    fireEvent.click(button)
 
     await waitFor(() => {
       expect(screen.getByText('Success message')).toBeDefined()
@@ -63,7 +63,7 @@ describe('useSnackbar', () => {
     )
 
     const button = screen.getByText('Show Error')
-    button.click()
+    fireEvent.click(button)
 
     await waitFor(() => {
       expect(screen.getByText('Error message')).toBeDefined()

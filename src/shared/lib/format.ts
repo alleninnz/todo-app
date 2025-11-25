@@ -68,7 +68,10 @@ export const formatTaskStatus = (status: TaskStatus): string => {
 export const getStatusColor = (
   status: TaskStatus
 ): 'default' | 'primary' | 'success' | 'secondary' => {
-  const colorMap: Record<TaskStatus, 'default' | 'primary' | 'success' | 'secondary'> = {
+  const colorMap: Record<
+    TaskStatus,
+    'default' | 'primary' | 'success' | 'secondary'
+  > = {
     pending: 'default',
     'in-progress': 'primary',
     completed: 'success',
@@ -84,7 +87,11 @@ export const getStatusColor = (
  * @param plural - The plural form of the noun (optional, defaults to singular + 's')
  * @returns Formatted count string
  */
-export const formatCount = (count: number, singular: string, plural?: string): string => {
+export const formatCount = (
+  count: number,
+  singular: string,
+  plural?: string
+): string => {
   const noun = count === 1 ? singular : plural || `${singular}s`
   return `${count} ${noun}`
 }
@@ -96,7 +103,11 @@ export const formatCount = (count: number, singular: string, plural?: string): s
  * @param decimals - Number of decimal places (default: 0)
  * @returns Formatted percentage string (e.g., "75%")
  */
-export const formatPercentage = (value: number, total: number, decimals: number = 0): string => {
+export const formatPercentage = (
+  value: number,
+  total: number,
+  decimals: number = 0
+): string => {
   if (total === 0) return '0%'
   const percentage = (value / total) * 100
   return `${percentage.toFixed(decimals)}%`
@@ -109,7 +120,11 @@ export const formatPercentage = (value: number, total: number, decimals: number 
  * @param ellipsis - The ellipsis string (default: '...')
  * @returns Truncated text
  */
-export const truncate = (text: string, maxLength: number, ellipsis: string = '...'): string => {
+export const truncate = (
+  text: string,
+  maxLength: number,
+  ellipsis: string = '...'
+): string => {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength - ellipsis.length) + ellipsis
 }
@@ -130,7 +145,10 @@ export const capitalize = (text: string): string => {
  * @param conjunction - The conjunction to use (default: 'and')
  * @returns Formatted list string (e.g., "apples, oranges, and bananas")
  */
-export const formatList = (items: string[], conjunction: string = 'and'): string => {
+export const formatList = (
+  items: string[],
+  conjunction: string = 'and'
+): string => {
   if (items.length === 0) return ''
   if (items.length === 1) return items[0]
   if (items.length === 2) return `${items[0]} ${conjunction} ${items[1]}`
@@ -195,6 +213,10 @@ export const formatNumber = (num: number): string => {
  * @param plural - The plural form (optional, defaults to singular + 's')
  * @returns The appropriate form of the word
  */
-export const pluralize = (count: number, singular: string, plural?: string): string => {
+export const pluralize = (
+  count: number,
+  singular: string,
+  plural?: string
+): string => {
   return count === 1 ? singular : plural || `${singular}s`
 }

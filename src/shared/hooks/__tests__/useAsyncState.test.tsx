@@ -167,16 +167,23 @@ describe('useAsyncState', () => {
     it('should ignore results from stale executions', async () => {
       const { result } = renderHook(() => useAsyncState<string>())
 
+      let slowPromise: Promise<string | null>
+      let fastPromise: Promise<string | null>
+
       // Start first slow execution
-      const slowPromise = result.current.execute(async () => {
-        await new Promise(resolve => setTimeout(resolve, 100))
-        return 'slow'
+      act(() => {
+        slowPromise = result.current.execute(async () => {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          return 'slow'
+        })
       })
 
       // Start second fast execution (this should win)
-      const fastPromise = result.current.execute(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10))
-        return 'fast'
+      act(() => {
+        fastPromise = result.current.execute(async () => {
+          await new Promise(resolve => setTimeout(resolve, 10))
+          return 'fast'
+        })
       })
 
       await waitFor(() => expect(result.current.status).toBe('success'))
@@ -185,40 +192,44 @@ describe('useAsyncState', () => {
       expect(result.current.data).toBe('fast')
 
       // Wait for slow promise to complete
-      const slowResult = await slowPromise
+      const slowResult = await slowPromise!
       expect(slowResult).toBeNull() // Stale execution returns null
 
       // State should still be from fast execution
       expect(result.current.data).toBe('fast')
 
-      await fastPromise
+      await fastPromise!
     })
 
     it('should handle multiple rapid executions', async () => {
       const { result } = renderHook(() => useAsyncState<number>())
 
+      let promises: Array<Promise<number | null>>
+
       // Fire multiple executions rapidly
-      const promises = [
-        result.current.execute(async () => {
-          await new Promise(resolve => setTimeout(resolve, 50))
-          return 1
-        }),
-        result.current.execute(async () => {
-          await new Promise(resolve => setTimeout(resolve, 30))
-          return 2
-        }),
-        result.current.execute(async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
-          return 3
-        }),
-      ]
+      act(() => {
+        promises = [
+          result.current.execute(async () => {
+            await new Promise(resolve => setTimeout(resolve, 50))
+            return 1
+          }),
+          result.current.execute(async () => {
+            await new Promise(resolve => setTimeout(resolve, 30))
+            return 2
+          }),
+          result.current.execute(async () => {
+            await new Promise(resolve => setTimeout(resolve, 10))
+            return 3
+          }),
+        ]
+      })
 
       await waitFor(() => expect(result.current.status).toBe('success'))
 
       // Should have the data from the last execution
       expect(result.current.data).toBe(3)
 
-      await Promise.all(promises)
+      await Promise.all(promises!)
     })
   })
 
@@ -419,9 +430,11 @@ describe('useAsyncState', () => {
     it('should handle multiple resets', () => {
       const { result } = renderHook(() => useAsyncState<string>())
 
-      result.current.reset()
-      result.current.reset()
-      result.current.reset()
+      act(() => {
+        result.current.reset()
+        result.current.reset()
+        result.current.reset()
+      })
 
       expect(result.current.status).toBe('idle')
     })

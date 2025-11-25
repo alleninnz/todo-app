@@ -157,7 +157,7 @@ export const NETWORK_ERROR_INFO: ErrorPageInfo = {
  * isNetworkError(error) // false
  * ```
  */
-export function isNetworkError(error: Error | unknown): boolean {
+export const isNetworkError = (error: Error | unknown): boolean => {
   if (!error || typeof error !== 'object') return false
 
   const err = error as Error
@@ -177,9 +177,7 @@ export function isNetworkError(error: Error | unknown): boolean {
   // Check error message
   if (
     err.message &&
-    networkPatterns.some(pattern =>
-      err.message.toLowerCase().includes(pattern)
-    )
+    networkPatterns.some(pattern => err.message.toLowerCase().includes(pattern))
   ) {
     return true
   }
@@ -235,7 +233,7 @@ export function isNetworkError(error: Error | unknown): boolean {
  * extractStatusCode(componentError) // null
  * ```
  */
-export function extractStatusCode(error: Error | unknown): number | null {
+export const extractStatusCode = (error: Error | unknown): number | null => {
   if (!error || typeof error !== 'object') {
     return null
   }
@@ -320,10 +318,12 @@ export function extractStatusCode(error: Error | unknown): number | null {
  * // { statusCode: 500, errorInfo: { title: 'Something Went Wrong', message: '...', category: 'unknown' } }
  * ```
  */
-export function getErrorInfo(error: Error | unknown): {
+export const getErrorInfo = (
+  error: Error | unknown
+): {
   statusCode: number
   errorInfo: ErrorPageInfo
-} {
+} => {
   // Check for network errors first
   if (isNetworkError(error)) {
     return {

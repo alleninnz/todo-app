@@ -456,7 +456,7 @@ export const diffInDays = (
  * parseDateString('29-02-2025') // null (invalid - not leap year)
  * ```
  */
-export function parseDateString(dateStr: string): Date | null {
+export const parseDateString = (dateStr: string): Date | null => {
   const match = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/)
   if (!match) return null
 
@@ -496,7 +496,7 @@ export function parseDateString(dateStr: string): Date | null {
  * isValidDateFormat('29-02-2025') // false (not leap year)
  * ```
  */
-export function isValidDateFormat(dateStr: string): boolean {
+export const isValidDateFormat = (dateStr: string): boolean => {
   // Check format pattern
   const formatRegex = /^\d{2}-\d{2}-\d{4}$/
   if (!formatRegex.test(dateStr)) return false
@@ -524,7 +524,7 @@ export function isValidDateFormat(dateStr: string): boolean {
  * isPastDate('20-11-2025') // false
  * ```
  */
-export function isPastDate(dateStr: string): boolean {
+export const isPastDate = (dateStr: string): boolean => {
   const date = parseDateString(dateStr)
   if (!date) return false
 
