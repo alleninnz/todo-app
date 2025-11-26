@@ -55,10 +55,10 @@ describe('AppErrorBoundary', () => {
 
       // Should show error page instead of crashing
       expect(screen.getByText('500')).toBeInTheDocument()
-      expect(screen.getByText('Internal Server Error')).toBeInTheDocument()
+      expect(screen.getByText('Something Went Wrong')).toBeInTheDocument()
     })
 
-    it('displays custom error message from thrown error', () => {
+    it('displays custom error message in development mode', () => {
       const customError = new Error('Custom error message')
 
       render(
@@ -69,19 +69,10 @@ describe('AppErrorBoundary', () => {
 
       // Error boundary should catch and display error
       expect(screen.getByText('500')).toBeInTheDocument()
-      expect(screen.getByText('Internal Server Error')).toBeInTheDocument()
-    })
+      expect(screen.getByText('Something Went Wrong')).toBeInTheDocument()
 
-    it('shows fallback UI after error', () => {
-      render(
-        <AppErrorBoundary>
-          <ThrowError />
-        </AppErrorBoundary>
-      )
-
-      // ErrorPageUI should render with default 500 error
-      expect(screen.getByText('500')).toBeInTheDocument()
-      expect(screen.getByText('Internal Server Error')).toBeInTheDocument()
+      // Custom error message should be visible in error details (dev mode)
+      expect(screen.getByText('Custom error message')).toBeInTheDocument()
     })
   })
 
@@ -189,7 +180,7 @@ describe('AppErrorBoundary', () => {
 
       // Error boundary should catch error and show fallback UI
       expect(screen.getByText('500')).toBeInTheDocument()
-      expect(screen.getByText('Internal Server Error')).toBeInTheDocument()
+      expect(screen.getByText('Something Went Wrong')).toBeInTheDocument()
     })
 
     it('shows error category in development mode', () => {
@@ -290,7 +281,7 @@ describe('AppErrorBoundary', () => {
       )
 
       expect(screen.getByText('500')).toBeInTheDocument()
-      expect(screen.getByText('Internal Server Error')).toBeInTheDocument()
+      expect(screen.getByText('Something Went Wrong')).toBeInTheDocument()
     })
   })
 })

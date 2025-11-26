@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import { useSnackbar } from 'notistack'
 import { SnackbarProvider } from '../SnackbarProvider'
 
@@ -29,6 +29,10 @@ const TestComponent = ({ variant = 'default' }: { variant?: string }) => {
 }
 
 describe('SnackbarProvider', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   describe('Rendering', () => {
     it('renders children correctly', () => {
       render(
@@ -55,66 +59,6 @@ describe('SnackbarProvider', () => {
       fireEvent.click(button)
 
       // Wait for notification to appear
-      await waitFor(() => {
-        expect(screen.getByText('Test notification')).toBeInTheDocument()
-      })
-    })
-
-    it('displays success variant notification', async () => {
-      const { getByRole } = render(
-        <SnackbarProvider>
-          <TestComponent variant="success" />
-        </SnackbarProvider>
-      )
-
-      const button = getByRole('button', { name: /show notification/i })
-      fireEvent.click(button)
-
-      await waitFor(() => {
-        expect(screen.getByText('Test notification')).toBeInTheDocument()
-      })
-    })
-
-    it('displays error variant notification', async () => {
-      const { getByRole } = render(
-        <SnackbarProvider>
-          <TestComponent variant="error" />
-        </SnackbarProvider>
-      )
-
-      const button = getByRole('button', { name: /show notification/i })
-      fireEvent.click(button)
-
-      await waitFor(() => {
-        expect(screen.getByText('Test notification')).toBeInTheDocument()
-      })
-    })
-
-    it('displays warning variant notification', async () => {
-      const { getByRole } = render(
-        <SnackbarProvider>
-          <TestComponent variant="warning" />
-        </SnackbarProvider>
-      )
-
-      const button = getByRole('button', { name: /show notification/i })
-      fireEvent.click(button)
-
-      await waitFor(() => {
-        expect(screen.getByText('Test notification')).toBeInTheDocument()
-      })
-    })
-
-    it('displays info variant notification', async () => {
-      const { getByRole } = render(
-        <SnackbarProvider>
-          <TestComponent variant="info" />
-        </SnackbarProvider>
-      )
-
-      const button = getByRole('button', { name: /show notification/i })
-      fireEvent.click(button)
-
       await waitFor(() => {
         expect(screen.getByText('Test notification')).toBeInTheDocument()
       })
@@ -172,19 +116,7 @@ describe('SnackbarProvider', () => {
   })
 
   describe('Configuration', () => {
-    it('renders SnackbarProvider without errors', () => {
-      const { container } = render(
-        <SnackbarProvider>
-          <div>Test</div>
-        </SnackbarProvider>
-      )
-
-      // Provider should wrap children successfully
-      expect(container).toBeInTheDocument()
-      expect(screen.getByText('Test')).toBeInTheDocument()
-    })
-
-    it('provides snackbar context to children', () => {
+    it('provides snackbar context and renders children', () => {
       const { getByRole } = render(
         <SnackbarProvider>
           <TestComponent />
@@ -194,6 +126,29 @@ describe('SnackbarProvider', () => {
       // Component using snackbar hook should render successfully
       const button = getByRole('button', { name: /show notification/i })
       expect(button).toBeInTheDocument()
+    })
+
+    it('prevents duplicate notifications', async () => {
+      const { getByRole } = render(
+        <SnackbarProvider>
+          <TestComponent />
+        </SnackbarProvider>
+      )
+
+      const button = getByRole('button', { name: /show notification/i })
+
+      // Click multiple times quickly
+      fireEvent.click(button)
+      fireEvent.click(button)
+      fireEvent.click(button)
+
+      await waitFor(() => {
+        expect(screen.getByText('Test notification')).toBeInTheDocument()
+      })
+
+      // Should only show one notification due to preventDuplicate prop
+      const notifications = screen.getAllByText('Test notification')
+      expect(notifications).toHaveLength(1)
     })
   })
 

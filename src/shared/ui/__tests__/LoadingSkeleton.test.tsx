@@ -502,5 +502,13 @@ describe('LoadingSkeleton', () => {
       const waveSkeletons = container.querySelectorAll('.MuiSkeleton-wave')
       expect(waveSkeletons).toHaveLength(0)
     })
+
+    it('has aria-busy="true" to indicate loading state', () => {
+      const { container } = render(<LoadingSkeleton variant="taskCard" />)
+
+      // The root element (Box) should have aria-busy="true"
+      const root = container.firstChild
+      expect(root).toHaveAttribute('aria-busy', 'true')
+    })
   })
 })

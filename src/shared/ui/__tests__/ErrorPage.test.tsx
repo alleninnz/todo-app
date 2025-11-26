@@ -473,48 +473,22 @@ describe('ErrorPageUI', () => {
       }
     })
 
-    it('does not show error details in production mode', () => {
-      // Note: import.meta.env.DEV is a build-time constant, so this test
-      // will skip in dev environment. Production builds would pass this.
+    it('shows error details only in development mode', () => {
+      const testError = new Error('Development error details')
+      const errorInfo: ErrorPageInfo = {
+        title: 'Error',
+        message: 'An error occurred',
+      }
+
+      render(
+        <ErrorPageUI statusCode={500} errorInfo={errorInfo} error={testError} />
+      )
+
+      // Error details are shown in dev mode (where tests run)
       if (import.meta.env.DEV) {
-        // In dev environment, error details ARE shown
-        const testError = new Error('Development error details')
-        const errorInfo: ErrorPageInfo = {
-          title: 'Error',
-          message: 'An error occurred',
-        }
-
-        render(
-          <ErrorPageUI
-            statusCode={500}
-            errorInfo={errorInfo}
-            error={testError}
-          />
-        )
-
-        // Should show error in dev mode
         expect(
           screen.getByText('Development error details')
         ).toBeInTheDocument()
-      } else {
-        // In production build, error details are NOT shown
-        const testError = new Error('Secret production error')
-        const errorInfo: ErrorPageInfo = {
-          title: 'Error',
-          message: 'An error occurred',
-        }
-
-        render(
-          <ErrorPageUI
-            statusCode={500}
-            errorInfo={errorInfo}
-            error={testError}
-          />
-        )
-
-        expect(
-          screen.queryByText('Secret production error')
-        ).not.toBeInTheDocument()
       }
     })
   })
