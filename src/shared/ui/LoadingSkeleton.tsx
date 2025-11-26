@@ -86,6 +86,7 @@ const TaskCardSkeleton = memo(({ animated = true }: { animated?: boolean }) => {
 
   return (
     <Box
+      aria-busy="true"
       sx={{
         p: 2,
         border: 1,
@@ -213,12 +214,19 @@ const TextSkeleton = memo(
 
     // Single line optimization: avoid Stack wrapper overhead
     if (lines === 1) {
-      return <Skeleton variant="text" width={width} animation={animation} />
+      return (
+        <Skeleton
+          variant="text"
+          width={width}
+          animation={animation}
+          aria-busy="true"
+        />
+      )
     }
 
     // Multi-line: last line at 60% width mimics natural text ending
     return (
-      <Stack spacing={0.5}>
+      <Stack spacing={0.5} aria-busy="true">
         {Array.from({ length: lines }, (_, index) => {
           const isLastLine = index === lines - 1
           const lineWidth = isLastLine ? SKELETON_WIDTHS.LAST_LINE : width
@@ -271,6 +279,7 @@ const CircularSkeleton = memo(
         width={diameter}
         height={diameter}
         animation={animation}
+        aria-busy="true"
       />
     )
   }

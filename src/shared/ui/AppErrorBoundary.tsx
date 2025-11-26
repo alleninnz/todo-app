@@ -242,8 +242,12 @@ export class AppErrorBoundary extends Component<
     // Extract HTTP status code and error info from error
     const { statusCode, errorInfo: errorPageInfo } = getErrorInfo(error)
 
-    // Log error category in development for debugging
-    if (import.meta.env.DEV && errorPageInfo.category) {
+    // Log error category in development for debugging (skip during tests)
+    if (
+      import.meta.env.DEV &&
+      import.meta.env.MODE !== 'test' &&
+      errorPageInfo.category
+    ) {
       console.info(
         `[AppErrorBoundary] Error category: ${errorPageInfo.category}`
       )
