@@ -34,7 +34,7 @@ export default defineConfig({
       reportsDirectory: 'coverage/unit',
       reporter: ['text', 'html'],
     },
-    css: true,
+    css: false,
     alias: { '@': path.resolve(dirname, 'src') },
     projects: [
       {
