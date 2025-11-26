@@ -316,8 +316,7 @@ const http: KyInstance = ky.create({
                 body: JSON.stringify(transformedBody),
               })
 
-              // Copy all properties to the original request
-              Object.assign(request, newRequest)
+              return newRequest
             }
           } catch (error) {
             // If body parsing fails, continue with original request

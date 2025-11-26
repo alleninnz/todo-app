@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 // Define the schema for environment variables
 // with zod validation and default values
-const envSchema = z.object({
+// Export the schema for testing
+export const envSchema = z.object({
   VITE_ENABLE_DEBUG: z.coerce.boolean().default(false),
   VITE_ENABLE_MSW: z.coerce.boolean().default(false),
   VITE_API_RETRY_COUNT: z.coerce
@@ -38,8 +39,8 @@ const envSchema = z.object({
 type Env = z.infer<typeof envSchema>
 
 // Parse and validate the environment variables
-const parseEnv = (): Env => {
-  const parsedEnv = envSchema.safeParse(import.meta.env)
+export const parseEnv = (envVars: unknown): Env => {
+  const parsedEnv = envSchema.safeParse(envVars)
   if (!parsedEnv.success) {
     console.error(
       '❌ Invalid environment variables:',
@@ -55,6 +56,6 @@ const parseEnv = (): Env => {
 }
 
 // Export the validated environment variables
-export const env = parseEnv()
+export const env = parseEnv(import.meta.env)
 // Export the Env type for use in other parts of the application
 export type { Env }

@@ -339,12 +339,12 @@ export const getErrorInfo = (
   // Get error info based on status code
   let errorInfo: ErrorPageInfo
 
-  if (HTTP_ERROR_MESSAGES[statusCode]) {
-    // Known HTTP status code
-    errorInfo = HTTP_ERROR_MESSAGES[statusCode]
-  } else if (!extractedStatus && statusCode === 500) {
+  if (!extractedStatus && statusCode === 500) {
     // Component/runtime error (no HTTP status extracted)
     errorInfo = COMPONENT_ERROR_INFO
+  } else if (HTTP_ERROR_MESSAGES[statusCode]) {
+    // Known HTTP status code
+    errorInfo = HTTP_ERROR_MESSAGES[statusCode]
   } else {
     // Unknown status code
     errorInfo = DEFAULT_ERROR_INFO
