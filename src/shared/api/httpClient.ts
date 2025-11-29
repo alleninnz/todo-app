@@ -100,7 +100,7 @@ const debugLog = (
     duration?: number
   }
 ): void => {
-  if (!env.VITE_ENABLE_DEBUG) {
+  if (!env.VITE_ENABLE_DEBUG || import.meta.env.MODE === 'test') {
     return
   }
 
@@ -415,8 +415,15 @@ const transformError = async (error: unknown): Promise<never> => {
     if (parsedData && typeof parsedData === 'object') {
       // Basic duck typing to check if it looks like our ErrorResponse
       const candidate = parsedData as Record<string, unknown>
+      // We should try to use the message even if code is missing
+      if (typeof candidate.message === 'string') {
+        errorResponse.message = candidate.message
+      }
       if (typeof candidate.code === 'string') {
-        errorResponse = parsedData as unknown as ErrorResponse
+        errorResponse = {
+          ...errorResponse,
+          ...(parsedData as unknown as ErrorResponse),
+        }
       }
     }
 
