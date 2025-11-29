@@ -4,48 +4,6 @@
  * This module provides a configured HTTP client built on Ky with automatic
  * case conversion between frontend (camelCase) and backend (snake_case).
  *
- * ## Key Features
- * - **Automatic Case Conversion**: Request payloads converted to snake_case,
- *   responses converted to camelCase
- * - **Error Normalization**: HTTPError transformed to ApiError with parsed data
- * - **Request Retry**: Configurable retry logic for failed requests
- * - **Debug Logging**: Comprehensive request/response logging when enabled
- * - **Type Safety**: Full TypeScript support with generic types
- *
- * ## Usage Example
- * ```ts
- * // Frontend sends camelCase
- * await httpClient.post('tasks', {
- *   json: {
- *     taskTitle: 'Buy groceries',     // camelCase
- *     dueDate: '2024-01-15',
- *     priorityLevel: 'high',
- *   }
- * })
- *
- * // Backend receives snake_case
- * // {
- * //   task_title: 'Buy groceries',    // snake_case
- * //   due_date: '2024-01-15',
- * //   priority_level: 'high'
- * // }
- *
- * // Backend returns snake_case
- * // {
- * //   task_id: '123',
- * //   task_title: 'Buy groceries',
- * //   created_at: '2024-01-10T10:00:00Z'
- * // }
- *
- * // Frontend receives camelCase
- * const task = await httpClient.get<Task>('tasks/123')
- * // {
- * //   taskId: '123',                   // camelCase
- * //   taskTitle: 'Buy groceries',
- * //   createdAt: '2024-01-10T10:00:00Z'
- * // }
- * ```
- *
  * @module shared/api/httpClient
  */
 import ky, {
@@ -57,9 +15,19 @@ import ky, {
 } from 'ky'
 
 import { env } from '@shared/config/env'
+import { type ErrorResponse, HttpStatus } from '@shared/types/api.types'
 
 const RETRYABLE_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
-const RETRYABLE_STATUS_CODES = [408, 413, 425, 429, 500, 502, 503, 504] as const
+const RETRYABLE_STATUS_CODES = [
+  HttpStatus.REQUEST_TIMEOUT,
+  HttpStatus.PAYLOAD_TOO_LARGE,
+  HttpStatus.TOO_EARLY,
+  HttpStatus.TOO_MANY_REQUESTS,
+  HttpStatus.INTERNAL_SERVER_ERROR,
+  HttpStatus.BAD_GATEWAY,
+  HttpStatus.SERVICE_UNAVAILABLE,
+  HttpStatus.GATEWAY_TIMEOUT,
+] as const
 
 /**
  * Case Conversion Utilities
@@ -222,47 +190,40 @@ const extractHeaders = (headers: Headers): Record<string, string> => {
   return result
 }
 
-const extractMessage = (payload: unknown, fallback: string): string => {
-  if (typeof payload === 'string' && payload.trim().length > 0) {
-    return payload
-  }
-
-  if (payload && typeof payload === 'object') {
-    const candidate = payload as Record<string, unknown>
-    if (typeof candidate.message === 'string') {
-      return candidate.message
-    }
-
-    if (typeof candidate.error === 'string') {
-      return candidate.error
-    }
-  }
-
-  return fallback
-}
-
-export interface ApiErrorOptions {
+export interface ApiErrorOptions extends Partial<ErrorResponse> {
   message: string
   status?: number
   statusText?: string
   url?: string
-  data?: unknown
   cause?: unknown
 }
 
-export class ApiError extends Error {
+/**
+ * Custom API Error class that combines HTTP info with ErrorResponse details
+ * This provides a flat structure for easy error handling
+ */
+export class ApiError extends Error implements ErrorResponse {
   public readonly status?: number
   public readonly statusText?: string
   public readonly url?: string
-  public readonly data?: unknown
+
+  // Implementation of ErrorResponse
+  public readonly code: string
+  public readonly details?: Record<string, unknown>
+  public readonly requestId: string
+  public readonly timestamp: string
 
   constructor({
     message,
     status,
     statusText,
     url,
-    data,
     cause,
+    // ErrorResponse fields with defaults
+    code = 'UNKNOWN_ERROR',
+    details,
+    requestId = '',
+    timestamp = new Date().toISOString(),
   }: ApiErrorOptions) {
     super(message)
 
@@ -270,7 +231,11 @@ export class ApiError extends Error {
     this.status = status
     this.statusText = statusText
     this.url = url
-    this.data = data
+
+    this.code = code
+    this.details = details
+    this.requestId = requestId
+    this.timestamp = timestamp
 
     if (cause !== undefined) {
       this.cause = cause
@@ -440,19 +405,32 @@ type JsonHandler = (
 const transformError = async (error: unknown): Promise<never> => {
   if (error instanceof HTTPError) {
     const { response } = error
+    // Use the data we attached in beforeError hook
     const parsedData = (error as HTTPError & { parsedData?: unknown })
       .parsedData
 
+    // Try to interpret the parsed data as an ErrorResponse
+    let errorResponse: Partial<ErrorResponse> = {}
+
+    if (parsedData && typeof parsedData === 'object') {
+      // Basic duck typing to check if it looks like our ErrorResponse
+      const candidate = parsedData as Record<string, unknown>
+      if (typeof candidate.code === 'string') {
+        errorResponse = parsedData as unknown as ErrorResponse
+      }
+    }
+
     throw new ApiError({
-      message: extractMessage(
-        parsedData,
-        response?.statusText ?? error.message
-      ),
+      message: errorResponse.message ?? response?.statusText ?? error.message,
       status: response?.status,
       statusText: response?.statusText,
       url: response?.url,
-      data: parsedData,
       cause: error,
+      // Spread the parsed error response fields directly
+      code: errorResponse.code,
+      details: errorResponse.details,
+      requestId: errorResponse.requestId,
+      timestamp: errorResponse.timestamp,
     })
   }
 

@@ -50,6 +50,11 @@ export interface UseAsyncStateOptions<T, E = Error> {
    * @default true
    */
   readonly resetOnUnmount?: boolean
+  /**
+   * Whether to throw error after catching it
+   * @default false
+   */
+  readonly throwOnError?: boolean
 }
 
 /**
@@ -194,10 +199,14 @@ export const useAsyncState = <T, E = Error>(
           onFinallyRef.current?.()
         }
 
-        throw err
+        if (options.throwOnError) {
+          throw err
+        }
+
+        return null
       }
     },
-    []
+    [options.throwOnError]
   )
 
   /**
