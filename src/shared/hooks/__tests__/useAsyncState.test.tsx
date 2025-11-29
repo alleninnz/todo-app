@@ -79,25 +79,42 @@ describe('useAsyncState', () => {
   })
 
   describe('Execute Error Flow', () => {
-    it('should handle async operation errors', async () => {
+    it('should handle async operation errors without throwing by default', async () => {
       const { result } = renderHook(() => useAsyncState<string>())
       const mockError = new Error('Operation failed')
 
       let promise: Promise<string | null>
       await act(async () => {
+        // No try-catch needed here as throwOnError defaults to false
         promise = result.current.execute(async () => {
           throw mockError
         })
-        try {
-          await promise
-        } catch {
-          // Expected error
-        }
+      })
+
+      await waitFor(() => expect(result.current.isError).toBe(true))
+
+      expect(result.current.error).toBe(mockError)
+      expect(result.current.data).toBeNull()
+
+      const returnedData = await promise!
+      expect(returnedData).toBeNull()
+    })
+
+    it('should throw error when throwOnError is true', async () => {
+      const { result } = renderHook(() =>
+        useAsyncState<string>({ throwOnError: true })
+      )
+      const mockError = new Error('Operation failed')
+
+      await act(async () => {
+        const promise = result.current.execute(async () => {
+          throw mockError
+        })
+        await expect(promise).rejects.toThrow(mockError)
       })
 
       expect(result.current.error).toBe(mockError)
       expect(result.current.isError).toBe(true)
-      expect(result.current.data).toBeNull()
     })
 
     it('should call onError and onFinally on failure', async () => {
@@ -113,13 +130,9 @@ describe('useAsyncState', () => {
       )
 
       await act(async () => {
-        try {
-          await result.current.execute(async () => {
-            throw mockError
-          })
-        } catch {
-          // Expected error
-        }
+        await result.current.execute(async () => {
+          throw mockError
+        })
       })
 
       expect(onError).toHaveBeenCalledWith(mockError)
@@ -131,13 +144,9 @@ describe('useAsyncState', () => {
 
       // First execution fails
       await act(async () => {
-        try {
-          await result.current.execute(async () => {
-            throw new Error('First error')
-          })
-        } catch {
-          // Expected error
-        }
+        await result.current.execute(async () => {
+          throw new Error('First error')
+        })
       })
 
       expect(result.current.error).toBeTruthy()
