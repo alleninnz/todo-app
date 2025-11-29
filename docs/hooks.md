@@ -15,16 +15,17 @@
 
 用于管理异步操作状态的通用 Hook，提供类型安全的状态管理和竞态条件保护。
 
-### 核心特性
+### useAsyncState 核心特性
 
 - ✅ **判别联合类型** - 使用 TypeScript 判别联合确保状态一致性
 - ✅ **竞态保护** - 自动处理多次异步调用的竞态问题
 - ✅ **生命周期回调** - 支持 `onStart`、`onSuccess`、`onError`、`onFinally`
 - ✅ **便捷派生状态** - 提供 `isLoading`、`isSuccess`、`isError`、`isIdle` 布尔值
 - ✅ **手动状态控制** - 支持 `setData`、`setError` 用于乐观更新
+- ✅ **错误处理策略** - 可配置 `throwOnError`（默认 `false`），避免到处写 `try/catch`
 - ✅ **类型安全** - 完整的 TypeScript 泛型支持
 
-### 类型定义
+### useAsyncState 类型定义
 
 ```typescript
 type AsyncStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -42,10 +43,11 @@ interface UseAsyncStateOptions<T, E = Error> {
   onError?: (error: E) => void // 加载失败时触发
   onFinally?: () => void // 加载完成时触发（无论成功或失败）
   resetOnUnmount?: boolean // 卸载时是否重置计数器（默认 true）
+  throwOnError?: boolean // 捕获错误后是否重新抛出（默认 false）
 }
 ```
 
-### API 参考
+### useAsyncState API 参考
 
 #### 返回值
 
@@ -63,9 +65,9 @@ interface UseAsyncStateOptions<T, E = Error> {
 | `isSuccess`  | `boolean`                                           | 是否加载成功                                                  |
 | `isError`    | `boolean`                                           | 是否加载失败                                                  |
 
-### 使用示例
+### useAsyncState 使用示例
 
-#### 基础用法
+#### 基础用法（无需 try/catch）
 
 ```tsx
 import { useEffect } from 'react'
@@ -73,6 +75,7 @@ import { useAsyncState } from '@shared/hooks/useAsyncState'
 import { fetchTasks } from '@shared/api'
 
 function TaskList() {
+  // 默认 throwOnError 为 false，execute 内部会自动捕获错误
   const { data, isLoading, isError, error, execute } = useAsyncState<Task[]>()
 
   useEffect(() => {
@@ -109,6 +112,7 @@ function CreateTaskForm() {
   })
 
   const handleSubmit = async (values: TaskInput) => {
+    // 这里的 execute 不会抛出异常，错误已由 onError 处理
     await execute(() => api.createTask(values))
   }
 
@@ -144,16 +148,26 @@ function TaskList() {
     )
     setData(optimisticData)
 
-    try {
-      await execute(() => api.toggleTask(id))
-    } catch (error) {
-      // 失败时回滚到原状态
-      setData(oldData)
-      showError('操作失败，已恢复原状态')
+    // 这里需要手动 try/catch 吗？
+    // 不需要！我们可以利用 execute 的返回值来判断，或者使用 throwOnError: true
+
+    // 方式一：检查返回值（推荐）
+    const result = await execute(() => api.toggleTask(id))
+    if (!result) {
+      // 如果 result 为 null（且不是因为竞态），说明出错了
+      // 但由于 setData 已经改了数据，我们需要在 onError 里回滚
     }
   }
 
-  return <TaskListView items={data} onToggle={toggleComplete} />
+  // 更推荐的乐观更新写法：
+  const { execute: toggleExecute } = useAsyncState({
+    onError: () => {
+      setData(oldData) // 失败自动回滚
+      showError('操作失败，已恢复原状态')
+    },
+  })
+
+  // ...
 }
 ```
 
@@ -258,7 +272,7 @@ function Dashboard() {
 }
 ```
 
-### 最佳实践
+### useAsyncState 最佳实践
 
 1. **总是在 useEffect 中调用 execute**
 
@@ -282,20 +296,12 @@ function Dashboard() {
    if (status === 'loading') return <Spinner />
    ```
 
-3. **乐观更新时记得处理失败回滚**
+3. **利用 `throwOnError: false` 简化代码**
 
-   ```tsx
-   // ✅ 推荐
-   const oldData = data
-   setData(optimisticData)
-   try {
-     await execute(...)
-   } catch {
-     setData(oldData) // 回滚
-   }
-   ```
+   默认情况下，你不需要在组件层捕获错误。将错误处理逻辑集中在 `onError` 回调中，保持组件代码清晰。
 
 4. **善用生命周期回调分离关注点**
+
    ```tsx
    // ✅ 推荐：在配置中处理副作用
    useAsyncState({
@@ -312,7 +318,7 @@ function Dashboard() {
 
 基于 `notistack` 封装的类型安全通知 Hook，提供统一的用户反馈接口。
 
-### 核心特性
+### useSnackbar 核心特性
 
 - ✅ **类型安全** - TypeScript 完整类型定义
 - ✅ **多种变体** - 支持 success、error、warning、info、default 五种通知类型
@@ -320,7 +326,7 @@ function Dashboard() {
 - ✅ **全局控制** - 提供 close 和 closeAll 方法
 - ✅ **简洁 API** - 语义化方法名，易于使用
 
-### API 参考
+### useSnackbar API 参考
 
 #### 方法列表
 
@@ -350,7 +356,7 @@ interface SnackbarOptions {
 }
 ```
 
-### 使用示例
+### useSnackbar 使用示例
 
 #### 基础用法
 
@@ -361,6 +367,8 @@ function MyComponent() {
   const { showSuccess, showError, showWarning, showInfo } = useSnackbar()
 
   const handleSave = async () => {
+    // 配合 useAsyncState 使用时，这里通常不需要 try/catch
+    // 但如果单独使用，可以这样写：
     try {
       await saveTask()
       showSuccess('任务保存成功')
@@ -516,7 +524,7 @@ export const env = {
 }
 ```
 
-### 最佳实践
+### useSnackbar 最佳实践
 
 1. **为不同场景选择合适的通知类型**
 
@@ -548,6 +556,7 @@ export const env = {
    ```
 
 5. **结合异步状态管理自动化反馈**
+
    ```tsx
    useAsyncState({
      onSuccess: () => showSuccess('操作成功'),
@@ -643,7 +652,7 @@ function TaskManager() {
 
 ### Q: execute 返回的 Promise 什么时候返回 null？
 
-A: 当请求因竞态保护被忽略时返回 null。例如快速连续执行两次 execute，第一次的结果会被忽略并返回 null。
+A: 当请求因竞态保护被忽略时，或者当 `throwOnError` 为 `false` 且发生错误时，会返回 null。
 
 ### Q: 如何在组件卸载时取消正在进行的请求？
 
