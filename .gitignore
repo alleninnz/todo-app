@@ -21,10 +21,8 @@ coverage/
 *.tsbuildinfo
 
 # Local environment files
-.env
-.env.*
-!.env.example
-*.local
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
