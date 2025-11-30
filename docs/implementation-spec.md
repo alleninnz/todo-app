@@ -19,7 +19,7 @@ _This document translates `docs/requirements.md` into an actionable, phase-based
 
 | Area               | Key Files                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared foundation  | `src/shared/api/httpClient.ts`, `src/shared/config/env.ts`, `src/shared/hooks/useAsyncState.ts`, `src/shared/hooks/useSnackbar.ts`, `src/shared/lib/date.ts`, `src/shared/lib/format.ts`, `src/shared/types/task.types.ts`, `src/test/setup.ts`, `src/test/mocks/**/*.ts` |
+| Shared foundation  | `src/shared/api/httpClient.ts`, `src/shared/config/env.ts`, `src/shared/hooks/useSnackbar.ts`, `src/shared/lib/date.ts`, `src/shared/lib/format.ts`, `src/shared/types/task.types.ts`, `src/test/setup.ts`, `src/test/mocks/**/*.ts` |
 | Tasks feature      | `src/features/tasks/{types,validation,services,store,hooks,components}/**`, plus `index.ts` barrels and stories/tests                                                                                                                                                     |
 | Lists feature      | `src/features/lists/{hooks,components}/**`, `index.ts`, stories/tests                                                                                                                                                                                                     |
 | App shell          | `src/app/{providers.tsx,routes.tsx}`, `src/app/App.tsx`, `src/pages/TasksPage.tsx`, shared UI components                                                                                                                                                                  |
@@ -43,9 +43,9 @@ Each phase has explicit deliverables and verification steps. Finish all subtasks
 - [x] 3. **Environment & HTTP Client**
   - Extend `src/shared/config/env.ts` to cover API base URL, timeout, and debug flags with type-safe accessors.
   - Build `src/shared/api/httpClient.ts` using Ky: JSON headers, snake/camel conversion, retry policy, structured error normalization, optional debug logging.
-- [x] 4. **Shared Hooks**
+- [x] 4. **Shared Hooks & State**
   - `useSnackbar.ts`: wrap `notistack`’s `useSnackbar`, expose `showSuccess`, `showError`, and utility helpers (auto-dismiss, action buttons).
-  - `useAsyncState.ts`: discriminated union state machine with `execute(asyncFn, options)` supporting abort signals and optimistic updates.
+  - **React Query**: Setup `QueryClient` with global defaults (staleTime, retry) and `QueryClientProvider` in `providers.tsx`.
 - [x] 5. **Utilities (`src/shared/lib`)**
   - `date.ts`: helpers (`isOverdue`, `formatDueDate`, `compareByDueDate`, `sortNullsLast`).
   - `format.ts`: priority labels, truncation helpers, `formatTaskMeta` (e.g., `"Due tomorrow · High"`).
@@ -63,9 +63,9 @@ Each phase has explicit deliverables and verification steps. Finish all subtasks
   - Actions: `setTasks`, `addTask`, `updateTask`, `removeTask`, `setFilters`, `setSort`, `setLoading`, `setError`, `selectTask`.
   - Provide selectors + hooks for components; expose via barrel.
 - [ ] 3. **Hooks**
-  - `useTaskActions.ts`: orchestrate API calls, optimistic updates, and snackbar feedback. Include rollback logic when requests fail.
-  - `useTaskDetail.ts`: derive single task by id; fetch detail on demand if missing.
-  - Both hooks reuse `useAsyncState` and share error messaging helpers.
+  - `useTaskActions.ts`: orchestrate API calls using `useMutation` for optimistic updates and snackbar feedback.
+  - `useTaskDetail.ts`: derive single task by id using `useQuery` (or `useTasks` selector).
+  - Both hooks utilize React Query for caching, deduplication, and loading states.
 - [ ] 4. **UI Components**
   - `TaskList.tsx`: orchestrate loading/error/empty states, render list with virtualization-ready structure.
   - `TaskItem.tsx`: show checkbox, title, metadata chips, inline menu for edit/delete; respect accessibility (aria labels, focus order).

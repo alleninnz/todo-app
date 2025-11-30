@@ -121,7 +121,7 @@
 ### State & Data Management
 
 - **Client State**: Zustand
-- **Server State**: React Query (future consideration)
+- **Server State**: React Query (@tanstack/react-query)
 - **Form State**: React Hook Form
 - **Validation**: Zod
 
@@ -151,7 +151,7 @@
 
 - [x] **Type System**: Define core domain types with comprehensive documentation
 - [x] **HTTP Client**: Configure Ky with interceptors for automatic naming conversion, error handling, and retry logic
-- [x] **Custom Hooks**: Implement useAsyncState and useSnackbar for consistent async patterns
+- [x] **Custom Hooks**: Implement useSnackbar for notifications and configure React Query for async operations
 - [x] **Utility Functions**: Date formatting, text manipulation, and sorting helpers
 - [x] **Test Setup**: Configure Vitest, RTL, and MSW for testing infrastructure
 

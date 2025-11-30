@@ -27,7 +27,7 @@
 ## ⚡ 核心特性
 
 - ⚙️ **完整的基础设施** - HTTP 客户端、环境配置、主题系统已就绪
-- ✅ **智能状态管理** - useAsyncState Hook 处理加载、错误、竞态条件
+- ✅ **智能状态管理** - React Query 处理加载、缓存、同步与服务器状态
 - ✅ **类型安全** - TypeScript + Zod 完整类型定义和运行时校验
 - ✅ **自动数据转换** - HTTP 客户端自动处理 camelCase ↔ snake_case
 - ✅ **开发体验** - ESLint + Prettier 自动化代码质量控制
@@ -119,7 +119,7 @@ pnpm preview
 
 ## 📚 文档
 
-- [Custom Hooks 指南](docs/hooks.md) - useAsyncState 和 useSnackbar 详细文档
+- [Custom Hooks 指南](docs/hooks.md) - React Query 集成指南和 useSnackbar 文档
 - [项目概览](docs/overview.md) - 项目架构和设计理念
 - [实现规范](docs/implementation-spec.md) - 开发规范和最佳实践
 
@@ -156,7 +156,7 @@ src/
 ├── shared/               # 共享基础设施
 │   ├── api/             # httpClient.ts - 自动转换 HTTP 客户端
 │   ├── config/          # env.ts、theme.ts - 配置管理
-│   ├── hooks/           # useAsyncState、useSnackbar - 通用 Hooks
+│   ├── hooks/           # useSnackbar - 通用 Hooks
 │   ├── lib/             # date.ts、format.ts - 工具函数
 │   ├── types/           # task.types.ts、api.types.ts - 类型定义
 │   └── ui/              # 通用 UI 组件
@@ -185,7 +185,7 @@ src/
 - ✅ **类型系统** - 完整的 Task 领域类型定义（`shared/types/task.types.ts`）
 - ✅ **HTTP 客户端** - 自动 camelCase ↔ snake_case 转换（`shared/api/httpClient.ts`）
 - ✅ **运行时校验** - Zod schemas 表单验证（`features/tasks/validation/task.schema.ts`）
-- ✅ **自定义 Hooks** - useAsyncState 和 useSnackbar（`shared/hooks/`）
+- ✅ **自定义 Hooks** - useSnackbar（`shared/hooks/`）和 React Query 集成
 - ✅ **工具函数** - 日期处理和格式化工具（`shared/lib/`）
 - ✅ **测试基础设施** - Vitest + RTL + MSW 配置完成
 - ✅ **主题配置** - Material-UI 主题系统（`shared/config/theme.ts`）
@@ -281,35 +281,19 @@ const task = await httpClient.get<Task>('tasks/123')
 
 项目提供了强大的自定义 Hooks，简化常见开发任务：
 
-- **`useAsyncState`** - 异步状态管理，自动处理加载、成功、错误状态和竞态条件
-- **`useSnackbar`** - 类型安全的全局通知系统，统一用户反馈接口
+- **`React Query`** - 强大的异步状态管理库，替代手动管理 loading/error 状态
+  - 自动缓存与去重
+  - 窗口聚焦重新获取
+  - 乐观更新 (Optimistic Updates)
 
-**快速示例：**
+```typescript
+import { useQuery } from '@tanstack/react-query'
 
-```tsx
-import { useAsyncState } from '@shared/hooks/useAsyncState'
-import { useSnackbar } from '@shared/hooks/useSnackbar'
-
-function TaskForm() {
-  const { showSuccess, showError } = useSnackbar()
-
-  const { execute, isLoading } = useAsyncState<Task>({
-    onSuccess: task => showSuccess(`任务 "${task.title}" 已创建`),
-    onError: error => showError(error.message),
-  })
-
-  const handleSubmit = (values: TaskInput) => {
-    execute(() => api.createTask(values))
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <button type="submit" disabled={isLoading}>
-        {isLoading ? '创建中...' : '创建任务'}
-      </button>
-    </form>
-  )
-}
+// 自动处理 loading, error, caching
+const { data, isLoading } = useQuery({
+  queryKey: ['tasks'],
+  queryFn: fetchTasks
+})
 ```
 
 📖 **详细文档**: [Custom Hooks 指南](docs/hooks.md)

@@ -139,24 +139,23 @@ it('shows/hides error details', () => {
 
 ## Common Test Patterns
 
-### Testing Async Operations with useAsyncState
+### Testing React Query Hooks
 
 ```typescript
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, waitFor } from '@testing-library/react'
+import { createWrapper } from '@test/utils' // Wrapper with QueryClientProvider
 import { useTaskActions } from '../hooks/useTaskActions'
 
 it('creates task successfully', async () => {
-  const { result } = renderHook(() => useTaskActions())
-  const mockTask = { title: 'New Task', description: 'Test' }
-
-  await act(async () => {
-    await result.current.createTask(mockTask)
+  const { result } = renderHook(() => useTaskActions(), {
+    wrapper: createWrapper()
   })
+  const mockTask = { title: 'New Task' }
+
+  await result.current.createTask(mockTask)
 
   await waitFor(() => {
-    expect(result.current.tasks).toContainEqual(
-      expect.objectContaining(mockTask)
-    )
+    expect(result.current.isSuccess).toBe(true)
   })
 })
 ```
@@ -245,7 +244,6 @@ src/
 │   │       └── httpClient.test.ts
 │   ├── hooks/
 │   │   └── __tests__/
-│   │       ├── useAsyncState.test.tsx
 │   │       └── useSnackbar.test.tsx
 │   ├── lib/
 │   │   └── __tests__/

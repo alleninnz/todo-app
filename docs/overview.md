@@ -85,7 +85,6 @@
 │  │  │  ├─ env.ts
 │  │  │  └─ theme.ts
 │  │  ├─ hooks/
-│  │  │  ├─ useAsyncState.ts
 │  │  │  └─ useSnackbar.ts
 │  │  ├─ lib/
 │  │  │  ├─ date.ts
@@ -180,7 +179,7 @@
 - api/httpClient.ts：Ky 客户端（统一超时、重试、认证、错误转换）。唯一 HTTP 实例。
 - config/env.ts：读取并校验 import.meta.env（比如 VITE_API_BASE_URL），对外导出 env.API_BASE_URL。
 - config/theme.ts：MUI 主题。
-- hooks/：useAsyncState.ts（通用异步状态管理）、useSnackbar.ts（全局消息）。
+- hooks/：useSnackbar.ts（全局消息）。
 - lib/：date.ts（日期比较/排序 key/逾期判断）、format.ts（文本/优先级/日期格式化）。
 - types/task.types.ts：跨域共享领域模型 Task & Priority（UI/服务/页面统一认这个）。
 - ui/：

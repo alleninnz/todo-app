@@ -1,314 +1,97 @@
 # Custom Hooks 指南
 
-本项目提供了一套强大的自定义 React Hooks，用于简化异步状态管理和用户反馈通知。
+本项目提供了一套强大的 React Hooks，用于简化异步状态管理和用户反馈通知。
 
 ## 目录
 
-- [useAsyncState](#useasyncstate) - 异步状态管理
-- [useSnackbar](#usesnackbar) - 全局通知系统
+- [React Query Integration](#react-query-integration) - Data Fetching & Caching
+- [useSnackbar](#usesnackbar) - Global Notification System
 
 ---
 
-## useAsyncState
+## React Query Integration
 
-**位置**: `src/shared/hooks/useAsyncState.ts`
+**Library**: `@tanstack/react-query`
 
-用于管理异步操作状态的通用 Hook，提供类型安全的状态管理和竞态条件保护。
+We use React Query for all server state management (fetching, caching, synchronizing and updating server state). It replaces the legacy `useAsyncState` hook.
 
-### useAsyncState 核心特性
+### Core Principles
 
-- ✅ **判别联合类型** - 使用 TypeScript 判别联合确保状态一致性
-- ✅ **竞态保护** - 自动处理多次异步调用的竞态问题
-- ✅ **生命周期回调** - 支持 `onStart`、`onSuccess`、`onError`、`onFinally`
-- ✅ **便捷派生状态** - 提供 `isLoading`、`isSuccess`、`isError`、`isIdle` 布尔值
-- ✅ **手动状态控制** - 支持 `setData`、`setError` 用于乐观更新
-- ✅ **错误处理策略** - 可配置 `throwOnError`（默认 `false`），避免到处写 `try/catch`
-- ✅ **类型安全** - 完整的 TypeScript 泛型支持
+- **Server State**: Data that persists remotely (API). managed by React Query.
+- **Client State**: UI state (modals, form inputs), managed by Zustand or `useState`.
+- **Stale-While-Revalidate**: Data is cached and background updated.
 
-### useAsyncState 类型定义
+### Usage Patterns
 
-```typescript
-type AsyncStatus = 'idle' | 'loading' | 'success' | 'error'
+#### 1. Fetching Data (useQuery)
 
-type AsyncState<T, E = Error> =
-  | { status: 'idle'; data: T | null; error: null }
-  | { status: 'loading'; data: T | null; error: null }
-  | { status: 'success'; data: T; error: null }
-  | { status: 'error'; data: T | null; error: E }
+Wrap API calls in custom hooks to ensure query keys are consistent.
 
-interface UseAsyncStateOptions<T, E = Error> {
-  initialData?: T | null // 初始数据
-  onStart?: () => void // 开始加载时触发
-  onSuccess?: (data: T) => void // 加载成功时触发
-  onError?: (error: E) => void // 加载失败时触发
-  onFinally?: () => void // 加载完成时触发（无论成功或失败）
-  resetOnUnmount?: boolean // 卸载时是否重置计数器（默认 true）
-  throwOnError?: boolean // 捕获错误后是否重新抛出（默认 false）
+```tsx
+// features/tasks/hooks/useTasks.ts
+import { useQuery } from '@tanstack/react-query'
+import { taskService } from '../services/task.service'
+import { taskKeys } from './task.keys' // centralized keys
+
+export const useTasks = (filters: TaskFilters) => {
+  return useQuery({
+    queryKey: taskKeys.list(filters),
+    queryFn: () => taskService.getAll(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
 }
 ```
 
-### useAsyncState API 参考
+#### 2. Mutating Data (useMutation)
 
-#### 返回值
-
-| 属性         | 类型                                                | 说明                                                          |
-| ------------ | --------------------------------------------------- | ------------------------------------------------------------- |
-| `status`     | `AsyncStatus`                                       | 当前状态：`'idle'` \| `'loading'` \| `'success'` \| `'error'` |
-| `data`       | `T \| null`                                         | 成功时的数据（仅 `status === 'success'` 时保证非 null）       |
-| `error`      | `E \| null`                                         | 失败时的错误（仅 `status === 'error'` 时保证非 null）         |
-| `execute()`  | `(asyncFn: () => Promise<T>) => Promise<T \| null>` | 执行异步函数并管理状态                                        |
-| `reset()`    | `() => void`                                        | 重置到初始状态                                                |
-| `setData()`  | `(data: T \| null) => void`                         | 手动设置数据（用于乐观更新）                                  |
-| `setError()` | `(error: E \| null) => void`                        | 手动设置错误                                                  |
-| `isIdle`     | `boolean`                                           | 是否为初始状态                                                |
-| `isLoading`  | `boolean`                                           | 是否正在加载                                                  |
-| `isSuccess`  | `boolean`                                           | 是否加载成功                                                  |
-| `isError`    | `boolean`                                           | 是否加载失败                                                  |
-
-### useAsyncState 使用示例
-
-#### 基础用法（无需 try/catch）
+Use mutations for CUD operations (Create, Update, Delete).
 
 ```tsx
-import { useEffect } from 'react'
-import { useAsyncState } from '@shared/hooks/useAsyncState'
-import { fetchTasks } from '@shared/api'
-
-function TaskList() {
-  // 默认 throwOnError 为 false，execute 内部会自动捕获错误
-  const { data, isLoading, isError, error, execute } = useAsyncState<Task[]>()
-
-  useEffect(() => {
-    execute(() => fetchTasks())
-  }, [execute])
-
-  if (isLoading) return <Spinner />
-  if (isError) return <ErrorMessage error={error} />
-  if (!data) return <EmptyState />
-
-  return <TaskListView items={data} />
-}
-```
-
-#### 带生命周期回调
-
-```tsx
-import { useAsyncState } from '@shared/hooks/useAsyncState'
+// features/tasks/hooks/useTaskMutations.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSnackbar } from '@shared/hooks/useSnackbar'
-import { useNavigate } from 'react-router-dom'
+import { taskService } from '../services/task.service'
+import { taskKeys } from './task.keys'
 
-function CreateTaskForm() {
-  const navigate = useNavigate()
+export const useCreateTask = () => {
+  const queryClient = useQueryClient()
   const { showSuccess, showError } = useSnackbar()
 
-  const { execute, isLoading } = useAsyncState<Task>({
-    onSuccess: task => {
-      showSuccess(`任务 "${task.title}" 创建成功`)
-      navigate('/tasks')
+  return useMutation({
+    mutationFn: taskService.create,
+    onSuccess: newTask => {
+      showSuccess(`Created "${newTask.title}"`)
+      // Invalidate list to refetch
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() })
     },
     onError: error => {
-      showError(error.message || '创建任务失败')
+      showError('Failed to create task')
     },
   })
-
-  const handleSubmit = async (values: TaskInput) => {
-    // 这里的 execute 不会抛出异常，错误已由 onError 处理
-    await execute(() => api.createTask(values))
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* Form fields */}
-      <button type="submit" disabled={isLoading}>
-        {isLoading ? '创建中...' : '创建任务'}
-      </button>
-    </form>
-  )
 }
 ```
 
-#### 乐观更新
+#### 3. Query Key Management
 
-```tsx
-import { useAsyncState } from '@shared/hooks/useAsyncState'
-import { useSnackbar } from '@shared/hooks/useSnackbar'
+Maintain query keys in a dedicated factory file to avoid invalidation bugs.
 
-function TaskList() {
-  const { showError } = useSnackbar()
-  const { data, setData, execute } = useAsyncState<Task[]>()
-
-  const toggleComplete = async (id: string) => {
-    if (!data) return
-
-    const oldData = data
-
-    // 立即更新 UI（乐观更新）
-    const optimisticData = data.map(task =>
-      task.id === id ? { ...task, completed: !task.completed } : task
-    )
-    setData(optimisticData)
-
-    // 这里需要手动 try/catch 吗？
-    // 不需要！我们可以利用 execute 的返回值来判断，或者使用 throwOnError: true
-
-    // 方式一：检查返回值（推荐）
-    const result = await execute(() => api.toggleTask(id))
-    if (!result) {
-      // 如果 result 为 null（且不是因为竞态），说明出错了
-      // 但由于 setData 已经改了数据，我们需要在 onError 里回滚
-    }
-  }
-
-  // 更推荐的乐观更新写法：
-  const { execute: toggleExecute } = useAsyncState({
-    onError: () => {
-      setData(oldData) // 失败自动回滚
-      showError('操作失败，已恢复原状态')
-    },
-  })
-
-  // ...
+```typescript
+// features/tasks/hooks/task.keys.ts
+export const taskKeys = {
+  all: ['tasks'] as const,
+  lists: () => [...taskKeys.all, 'list'] as const,
+  list: (filters: TaskFilters) => [...taskKeys.lists(), { filters }] as const,
+  details: () => [...taskKeys.all, 'detail'] as const,
+  detail: (id: string) => [...taskKeys.details(), id] as const,
 }
 ```
 
-#### 手动状态控制
+### Best Practices
 
-```tsx
-import { useAsyncState } from '@shared/hooks/useAsyncState'
-
-function TaskManager() {
-  const { data, setData, setError, reset, execute } = useAsyncState<Task[]>({
-    initialData: [],
-  })
-
-  const loadTasks = () => {
-    execute(() => api.fetchTasks())
-  }
-
-  const handleClearCache = () => {
-    reset() // 重置到初始状态
-  }
-
-  const handleManualUpdate = (newTasks: Task[]) => {
-    setData(newTasks) // 手动设置数据（会将状态设为 'success'）
-  }
-
-  const handleSimulateError = () => {
-    setError(new Error('模拟错误')) // 手动设置错误（会将状态设为 'error'）
-  }
-
-  return (
-    <div>
-      <button onClick={loadTasks}>加载任务</button>
-      <button onClick={handleClearCache}>清除缓存</button>
-    </div>
-  )
-}
-```
-
-### 高级特性
-
-#### 竞态保护机制
-
-当用户快速触发多次异步操作时，Hook 会自动忽略过期的请求结果，确保只有最新的请求结果会更新状态：
-
-```tsx
-// 用户快速连续执行两次搜索
-execute(() => searchTasks('React')) // 执行 #1
-execute(() => searchTasks('TypeScript')) // 执行 #2
-
-// 即使 #1 比 #2 后完成，状态也不会被 #1 的结果覆盖
-// 最终显示的一定是最新搜索（#2）的结果
-```
-
-**实现原理**: 每次调用 `execute()` 都会递增内部的执行计数器，只有当请求完成时的计数器与当前计数器匹配时，才会更新状态。
-
-#### 自定义错误类型
-
-```tsx
-interface ApiError {
-  code: string
-  message: string
-  details?: Record<string, unknown>
-}
-
-const { error, execute } = useAsyncState<Task, ApiError>({
-  onError: err => {
-    console.log('错误代码:', err.code)
-    console.log('错误消息:', err.message)
-  },
-})
-```
-
-#### 组合使用多个异步状态
-
-```tsx
-function Dashboard() {
-  const tasks = useAsyncState<Task[]>()
-  const projects = useAsyncState<Project[]>()
-  const stats = useAsyncState<Statistics>()
-
-  useEffect(() => {
-    Promise.all([
-      tasks.execute(() => api.fetchTasks()),
-      projects.execute(() => api.fetchProjects()),
-      stats.execute(() => api.fetchStats()),
-    ])
-  }, [])
-
-  const isLoading = tasks.isLoading || projects.isLoading || stats.isLoading
-  const hasError = tasks.isError || projects.isError || stats.isError
-
-  if (isLoading) return <FullPageSpinner />
-  if (hasError) return <ErrorPage />
-
-  return (
-    <div>
-      <TaskSection data={tasks.data} />
-      <ProjectSection data={projects.data} />
-      <StatsSection data={stats.data} />
-    </div>
-  )
-}
-```
-
-### useAsyncState 最佳实践
-
-1. **总是在 useEffect 中调用 execute**
-
-   ```tsx
-   // ✅ 推荐
-   useEffect(() => {
-     execute(() => fetchData())
-   }, [execute])
-
-   // ❌ 避免在渲染期间调用
-   execute(() => fetchData())
-   ```
-
-2. **使用派生布尔值而非直接比较 status**
-
-   ```tsx
-   // ✅ 推荐
-   if (isLoading) return <Spinner />
-
-   // ❌ 避免
-   if (status === 'loading') return <Spinner />
-   ```
-
-3. **利用 `throwOnError: false` 简化代码**
-
-   默认情况下，你不需要在组件层捕获错误。将错误处理逻辑集中在 `onError` 回调中，保持组件代码清晰。
-
-4. **善用生命周期回调分离关注点**
-
-   ```tsx
-   // ✅ 推荐：在配置中处理副作用
-   useAsyncState({
-     onSuccess: data => navigate('/success'),
-     onError: err => showError(err.message),
-   })
-   ```
+1. **Colocate Hooks**: Keep query hooks in `features/{feature}/hooks/`.
+2. **Centralize Keys**: Always use a Query Key Factory.
+3. **Optimistic Updates**: Use `onMutate` to update cache instantly for better UX.
+4. **Error Handling**: Let global `onError` in `QueryClient` handle generic errors (like 500s), handle form errors locally.
 
 ---
 
@@ -367,8 +150,9 @@ function MyComponent() {
   const { showSuccess, showError, showWarning, showInfo } = useSnackbar()
 
   const handleSave = async () => {
-    // 配合 useAsyncState 使用时，这里通常不需要 try/catch
-    // 但如果单独使用，可以这样写：
+    // When using with React Query's onError/onSuccess callbacks,
+    // this try/catch block is often unnecessary.
+    // But for standalone async operations:
     try {
       await saveTask()
       showSuccess('任务保存成功')
@@ -381,22 +165,23 @@ function MyComponent() {
 }
 ```
 
-#### 结合 useAsyncState
+#### Combine with React Query
 
 ```tsx
-import { useAsyncState } from '@shared/hooks/useAsyncState'
+import { useMutation } from '@tanstack/react-query'
 import { useSnackbar } from '@shared/hooks/useSnackbar'
 
 function TaskForm() {
   const { showSuccess, showError } = useSnackbar()
 
-  const { execute, isLoading } = useAsyncState<Task>({
-    onSuccess: task => showSuccess(`任务 "${task.title}" 已创建`),
-    onError: error => showError(error.message || '操作失败'),
+  const { mutate: createTask, isPending } = useMutation({
+    mutationFn: api.createTask,
+    onSuccess: task => showSuccess(`Task "${task.title}" created`),
+    onError: error => showError(error.message || 'Operation failed'),
   })
 
   const handleSubmit = (values: TaskInput) => {
-    execute(() => api.createTask(values))
+    createTask(values)
   }
 
   return <form onSubmit={handleSubmit}>...</form>
@@ -555,85 +340,69 @@ export const env = {
    })
    ```
 
-5. **结合异步状态管理自动化反馈**
+5. **Automate feedback with React Query**
 
    ```tsx
-   useAsyncState({
-     onSuccess: () => showSuccess('操作成功'),
+   useMutation({
+     onSuccess: () => showSuccess('Operation success'),
      onError: err => showError(err.message),
    })
    ```
 
 ---
 
-## 组合使用示例
+## Combined Usage Example
 
-### 完整的 CRUD 操作流程
+### Complete CRUD with React Query & Snackbar
 
 ```tsx
-import { useAsyncState } from '@shared/hooks/useAsyncState'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSnackbar } from '@shared/hooks/useSnackbar'
-import { useNavigate } from 'react-router-dom'
 
 function TaskManager() {
-  const navigate = useNavigate()
-  const { showSuccess, showError, showWarning } = useSnackbar()
+  const queryClient = useQueryClient()
+  const { showSuccess, showError } = useSnackbar()
 
-  // 获取任务列表
+  // Fetch Tasks
   const {
     data: tasks,
     isLoading,
     isError,
-    execute: fetchTasks,
-  } = useAsyncState<Task[]>({
-    initialData: [],
-    onError: () => showError('加载任务失败'),
+  } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: api.fetchTasks,
   })
 
-  // 创建任务
-  const { execute: createTask } = useAsyncState<Task>({
+  // Create Mutation
+  const createMutation = useMutation({
+    mutationFn: api.createTask,
     onSuccess: task => {
-      showSuccess(`任务 "${task.title}" 已创建`)
-      fetchTasks(() => api.fetchTasks()) // 刷新列表
+      showSuccess(`Task "${task.title}" created`)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
-    onError: () => showError('创建任务失败'),
+    onError: () => showError('Failed to create task'),
   })
 
-  // 删除任务
-  const { execute: deleteTask } = useAsyncState<void>({
+  // Delete Mutation
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteTask,
     onSuccess: () => {
-      showSuccess('任务已删除')
-      fetchTasks(() => api.fetchTasks()) // 刷新列表
+      showSuccess('Task deleted')
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
-    onError: () => showError('删除任务失败'),
+    onError: () => showError('Failed to delete task'),
   })
-
-  // 初始加载
-  useEffect(() => {
-    fetchTasks(() => api.fetchTasks())
-  }, [fetchTasks])
-
-  const handleCreate = (values: TaskInput) => {
-    createTask(() => api.createTask(values))
-  }
-
-  const handleDelete = (id: string) => {
-    showWarning('确定要删除这个任务吗？', {
-      action: (
-        <Button onClick={() => deleteTask(() => api.deleteTask(id))}>
-          确认删除
-        </Button>
-      ),
-    })
-  }
 
   if (isLoading) return <LoadingSpinner />
   if (isError) return <ErrorPage />
 
   return (
     <div>
-      <TaskList tasks={tasks} onDelete={handleDelete} />
-      <CreateTaskButton onCreate={handleCreate} />
+      <TaskList tasks={tasks} onDelete={id => deleteMutation.mutate(id)} />
+      <CreateTaskButton
+        onCreate={values => createMutation.mutate(values)}
+        isLoading={createMutation.isPending}
+      />
     </div>
   )
 }
@@ -647,21 +416,3 @@ function TaskManager() {
 - [TypeScript 泛型](https://www.typescriptlang.org/docs/handbook/2/generics.html)
 - [notistack 文档](https://notistack.com/)
 - [判别联合类型](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html#discriminated-unions)
-
-## 常见问题
-
-### Q: execute 返回的 Promise 什么时候返回 null？
-
-A: 当请求因竞态保护被忽略时，或者当 `throwOnError` 为 `false` 且发生错误时，会返回 null。
-
-### Q: 如何在组件卸载时取消正在进行的请求？
-
-A: useAsyncState 默认会在组件卸载时重置执行计数器（`resetOnUnmount: true`），这会导致正在进行的请求结果被忽略。如果需要真正取消 HTTP 请求，应该使用 AbortController。
-
-### Q: 为什么 TypeScript 知道 status === 'success' 时 data 不为 null？
-
-A: 因为 AsyncState 使用了判别联合类型（Discriminated Union），`status` 字段作为判别符，TypeScript 能够根据 status 的值自动收窄类型。
-
-### Q: 如何显示全局加载状态？
-
-A: 可以在 Provider 层监听多个 useAsyncState 的 isLoading 状态，或使用全局状态管理（如 Zustand）来跟踪所有异步操作的加载状态。

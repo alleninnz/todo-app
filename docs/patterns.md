@@ -94,46 +94,33 @@ export const useTasksStore = create<TasksStore>(set => ({
 
 ```typescript
 // features/tasks/hooks/useTaskActions.ts
-import { useCallback } from 'react'
-import { useAsyncState } from '@shared/hooks/useAsyncState'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSnackbar } from '@shared/hooks/useSnackbar'
 import { taskService } from '../services/task.service'
-import { useTasksStore } from '../store/tasks.store'
-import type { TaskDraft, TaskUpdate } from '@shared/types/task.types'
+import type { TaskDraft, Task } from '@shared/types/task.types'
 
 export const useTaskActions = () => {
-  const store = useTasksStore()
+  const queryClient = useQueryClient()
   const { showSuccess, showError } = useSnackbar()
 
-  const { execute: executeLoad, isLoading } = useAsyncState({
-    onSuccess: tasks => store.setTasks(tasks),
-    onError: () => showError('Failed to load tasks'),
-  })
-
-  const { execute: executeCreate } = useAsyncState({
-    onSuccess: task => {
-      store.addTask(task)
-      showSuccess(`Created "${task.title}"`)
+  const createMutation = useMutation({
+    mutationFn: (draft: TaskDraft) => taskService.createTask(draft),
+    onSuccess: (newTask) => {
+      showSuccess(`Created "${newTask.title}"`)
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      
+      // Or update cache directly (optimistic update pattern is different, this is simple cache update)
+      queryClient.setQueryData<Task[]>(['tasks'], (old) => old ? [...old, newTask] : [newTask])
     },
-    onError: () => showError('Failed to create task'),
+    onError: () => {
+      showError('Failed to create task')
+    }
   })
-
-  const loadTasks = useCallback(() => {
-    return executeLoad(() => taskService.fetchTasks())
-  }, [executeLoad])
-
-  const createTask = useCallback(
-    (draft: TaskDraft) => {
-      return executeCreate(() => taskService.createTask(draft))
-    },
-    [executeCreate]
-  )
 
   return {
-    tasks: store.items,
-    isLoading,
-    loadTasks,
-    createTask,
+    createTask: createMutation.mutateAsync,
+    isCreating: createMutation.isPending
   }
 }
 ```

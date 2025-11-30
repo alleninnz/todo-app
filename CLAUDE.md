@@ -23,7 +23,7 @@
 - ✅ Type system: `shared/types/task.types.ts` - Complete Task domain model
 - ✅ HTTP client: `shared/api/httpClient.ts` - Auto case conversion, retry, error handling
 - ✅ Validation: `features/tasks/validation/task.schema.ts` - Zod schemas
-- ✅ Custom hooks: `useAsyncState`, `useSnackbar` in `shared/hooks/`
+- ✅ Custom hooks: `useSnackbar` in `shared/hooks/`, use `React Query` for async data
 - ✅ Utilities: Date/format helpers in `shared/lib/`
 - ✅ Error handling: `AppErrorBoundary`, `ErrorPage`, error utilities in `shared/lib/error.ts`
 - ✅ Test infrastructure: Vitest + MSW + React Testing Library configured
@@ -34,7 +34,7 @@
 **Key Achievements:**
 
 - httpClient handles **automatic camelCase/snake_case conversion** - no manual mapping needed
-- useAsyncState provides **race condition protection** and optimistic updates
+- React Query provides **caching, deduplication**, and race condition protection
 - Complete type safety with discriminated unions
 - Comprehensive error handling with user-friendly error pages
 - High-quality test suite with **no redundant tests** (quality over quantity)
@@ -185,17 +185,18 @@ TaskSortOption // Sort configuration
 
 ### Async State Management
 
-**Use `useAsyncState` for all async operations:**
+**Use `React Query` for all server state operations:**
 
 ```typescript
-const { execute, isLoading, data, error } = useAsyncState<Task>({
-  onSuccess: task => showSuccess(`Created ${task.title}`),
-  onError: err => showError(err.message),
+const { data, isLoading } = useQuery({
+  queryKey: ['entity'],
+  queryFn: api.fetch
 })
 
-const handleCreate = async (input: TaskDraft) => {
-  await execute(() => taskService.createTask(input))
-}
+const mutation = useMutation({
+  mutationFn: api.create,
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['entity'] })
+})
 ```
 
 **Features:**
@@ -223,19 +224,21 @@ interface TasksStore {
   removeTask: (id: string) => void
 }
 
-// ✅ CORRECT - Hook handles async
+// ✅ CORRECT - Hook handles async with React Query
 const useTaskActions = () => {
-  const store = useTasksStore()
-  const { execute } = useAsyncState()
+  const queryClient = useQueryClient()
+  
+  const { data: tasks, isLoading } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: taskService.fetchTasks
+  })
 
-  const loadTasks = () =>
-    execute(async () => {
-      const tasks = await taskService.fetchTasks()
-      store.setTasks(tasks)
-      return tasks
-    })
+  const { mutate: createTask } = useMutation({
+    mutationFn: taskService.createTask,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  })
 
-  return { loadTasks }
+  return { tasks, isLoading, createTask }
 }
 ```
 
@@ -246,7 +249,7 @@ const useTaskActions = () => {
 | `docs/requirements.md`        | Feature requirements & success criteria     |
 | `docs/implementation-spec.md` | Phase-by-phase implementation guide         |
 | `docs/overview.md`            | Architecture overview (Chinese)             |
-| `docs/hooks.md`               | useAsyncState & useSnackbar guide (Chinese) |
+| `docs/hooks.md`               | React Query integration & useSnackbar guide |
 | `README.md`                   | Setup, scripts, conventions                 |
 
 ## 🚀 Development Workflow
@@ -264,7 +267,7 @@ When implementing a new feature:
 
 - [ ] Follow naming conventions (`.service.ts`, `.store.ts`, etc.)
 - [ ] Use `httpClient` for API calls (auto-converts case)
-- [ ] Use `useAsyncState` for async operations
+- [ ] Use `React Query` for async operations
 - [ ] Define types in appropriate `.types.ts` file
 - [ ] Add Zod schema for validation if needed
 - [ ] Create unit tests (co-locate in `__tests__/`)
@@ -305,15 +308,15 @@ const useTasksStore = create((set) => ({
   }
 }))
 
-// ✅ CORRECT - Async in hooks
+// ✅ CORRECT - Async in hooks with React Query
 const useTaskActions = () => {
-  const store = useTasksStore()
-  const { execute } = useAsyncState()
-
-  const loadTasks = () => execute(async () => {
-    const tasks = await taskService.fetchTasks()
-    store.setTasks(tasks)
+  const queryClient = useQueryClient()
+  const { mutate: createTask } = useMutation({
+    mutationFn: taskService.createTask,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
   })
+  
+  return { createTask }
 }
 ```
 
@@ -352,7 +355,7 @@ Available templates in `docs/patterns.md`:
 
 - **Service Template**: Standard CRUD operations with `httpClient`.
 - **Store Template**: Zustand store with sync actions and state interface.
-- **Hook Template**: `useAsyncState` integration with service and store.
+- **Hook Template**: `React Query` integration with service.
 
 ## 🎨 UI Component Patterns
 
@@ -387,7 +390,7 @@ Available templates in `docs/patterns.md`:
 
 - **Service**: See httpClient.ts for HTTP patterns
 - **Store**: See shared types for state shape
-- **Hook**: See useAsyncState for async patterns
+- **Hook**: See React Query docs for async patterns
 - **Validation**: See task.schema.ts for Zod examples
 
 ## 🎨 Styling Strategy & Best Practices
