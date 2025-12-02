@@ -25,7 +25,7 @@ export const envSchema = z.object({
     .max(10000, 'Snackbar auto-hide duration must be at most 10000 ms')
     .default(4000),
   VITE_APP_NAME: z.string().optional().default('TodoAPP'),
-  VITE_API_BASE_URL: z.url().default('http://localhost:3000'),
+  VITE_API_BASE_URL: z.url().default('http://localhost:3000/api'),
 
   VITE_TIMEOUT: z.coerce
     .number()

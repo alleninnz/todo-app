@@ -1,7 +1,7 @@
 import { httpClient } from '@/shared/api/httpClient'
 import type { Task, TaskDraft, TaskUpdate } from '@/shared/types/task.types'
 
-const BASE_URL = '/tasks'
+const BASE_URL = 'tasks'
 
 /**
  * Service for managing task-related API interactions.
