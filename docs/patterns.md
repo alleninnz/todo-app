@@ -105,22 +105,24 @@ export const useTaskActions = () => {
 
   const createMutation = useMutation({
     mutationFn: (draft: TaskDraft) => taskService.createTask(draft),
-    onSuccess: (newTask) => {
+    onSuccess: newTask => {
       showSuccess(`Created "${newTask.title}"`)
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      
+
       // Or update cache directly (optimistic update pattern is different, this is simple cache update)
-      queryClient.setQueryData<Task[]>(['tasks'], (old) => old ? [...old, newTask] : [newTask])
+      queryClient.setQueryData<Task[]>(['tasks'], old =>
+        old ? [...old, newTask] : [newTask]
+      )
     },
     onError: () => {
       showError('Failed to create task')
-    }
+    },
   })
 
   return {
     createTask: createMutation.mutateAsync,
-    isCreating: createMutation.isPending
+    isCreating: createMutation.isPending,
   }
 }
 ```

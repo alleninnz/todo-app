@@ -148,7 +148,7 @@ import { useTaskActions } from '../hooks/useTaskActions'
 
 it('creates task successfully', async () => {
   const { result } = renderHook(() => useTaskActions(), {
-    wrapper: createWrapper()
+    wrapper: createWrapper(),
   })
   const mockTask = { title: 'New Task' }
 

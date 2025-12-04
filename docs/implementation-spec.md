@@ -17,13 +17,13 @@ _This document translates `docs/requirements.md` into an actionable, phase-based
 
 ## 3. Target Artifacts by Area
 
-| Area               | Key Files                                                                                                                                                                                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Area               | Key Files                                                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Shared foundation  | `src/shared/api/httpClient.ts`, `src/shared/config/env.ts`, `src/shared/hooks/useSnackbar.ts`, `src/shared/lib/date.ts`, `src/shared/lib/format.ts`, `src/shared/types/task.types.ts`, `src/test/setup.ts`, `src/test/mocks/**/*.ts` |
-| Tasks feature      | `src/features/tasks/{types,validation,services,store,hooks,components}/**`, plus `index.ts` barrels and stories/tests                                                                                                                                                     |
-| Lists feature      | `src/features/lists/{hooks,components}/**`, `index.ts`, stories/tests                                                                                                                                                                                                     |
-| App shell          | `src/app/{providers.tsx,routes.tsx}`, `src/app/App.tsx`, `src/pages/TasksPage.tsx`, shared UI components                                                                                                                                                                  |
-| QA & documentation | `docs/requirements.md` (source of truth), Storybook config, Vitest coverage reports                                                                                                                                                                                       |
+| Tasks feature      | `src/features/tasks/{types,validation,services,store,hooks,components}/**`, plus `index.ts` barrels and stories/tests                                                                                                                |
+| Lists feature      | `src/features/lists/{hooks,components}/**`, `index.ts`, stories/tests                                                                                                                                                                |
+| App shell          | `src/app/{providers.tsx,routes.tsx}`, `src/app/App.tsx`, `src/pages/TasksPage.tsx`, shared UI components                                                                                                                             |
+| QA & documentation | `docs/requirements.md` (source of truth), Storybook config, Vitest coverage reports                                                                                                                                                  |
 
 ## 4. Implementation Phases
 

@@ -292,7 +292,7 @@ import { useQuery } from '@tanstack/react-query'
 // 自动处理 loading, error, caching
 const { data, isLoading } = useQuery({
   queryKey: ['tasks'],
-  queryFn: fetchTasks
+  queryFn: fetchTasks,
 })
 ```
 
