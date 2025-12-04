@@ -14,8 +14,8 @@ import ky, {
   type ResponsePromise,
 } from 'ky'
 
-import { env } from '@shared/config/env'
-import { type ErrorResponse, HttpStatus } from '@shared/types/api.types'
+import { env } from '@shared/config'
+import { type ErrorResponse, HttpStatus } from '@shared/types'
 
 const RETRYABLE_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
 const RETRYABLE_STATUS_CODES = [
