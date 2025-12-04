@@ -1,7 +1,7 @@
 import { env } from '@/shared/config/env'
 import { theme } from '@/shared/config/theme'
 import { AppErrorBoundary } from '@/shared/ui/AppErrorBoundary'
-import { SnackbarProvider } from '@/shared/ui/SnackbarProvider'
+import { SnackbarProvider } from '@/shared/ui'
 import { ThemeProvider } from '@emotion/react'
 import CssBaseline from '@mui/material/CssBaseline'
 import { RouterProvider } from 'react-router-dom'
