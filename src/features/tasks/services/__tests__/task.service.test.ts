@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { taskService } from '../task.service'
 import { server } from '@test/mocks/server'
-import { env } from '@shared/config/env'
-import type { Task, TaskDraft, TaskUpdate } from '@shared/types/task.types'
+import { env } from '@shared/config'
+import type { Task, TaskDraft, TaskUpdate } from '@shared/types'
 
 describe('features/tasks/services/taskService', () => {
   const baseUrl = env.VITE_API_BASE_URL

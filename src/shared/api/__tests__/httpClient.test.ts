@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { httpClient, ApiError } from '../httpClient'
-import { env } from '@shared/config/env'
+import { env } from '@shared/config'
 import { server } from '@test/mocks/server'
-import { HttpStatus } from '@shared/types/api.types'
+import { HttpStatus } from '@/shared/types'
 
 describe('shared/api/httpClient', () => {
   const baseUrl = env.VITE_API_BASE_URL

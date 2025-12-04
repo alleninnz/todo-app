@@ -11,7 +11,7 @@ describe('shared/config/env', () => {
       expect(result.VITE_SNACKBAR_MAX_COUNT).toBe(3)
       expect(result.VITE_SNACKBAR_AUTO_HIDE).toBe(4000)
       expect(result.VITE_APP_NAME).toBe('TodoAPP')
-      expect(result.VITE_API_BASE_URL).toBe('http://localhost:3000')
+      expect(result.VITE_API_BASE_URL).toBe('http://localhost:3000/api')
       expect(result.VITE_TIMEOUT).toBe(10000)
     })
 

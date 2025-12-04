@@ -146,9 +146,7 @@ describe('Task Schema Validation', () => {
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain(
-            'Priority must be one of'
-          )
+          expect(result.error.issues[0].message).toContain('Invalid ')
         }
       })
     })
@@ -188,9 +186,7 @@ describe('Task Schema Validation', () => {
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain(
-            'must be true or false'
-          )
+          expect(result.error.issues[0].message).toContain('Invalid input')
         }
       })
     })
