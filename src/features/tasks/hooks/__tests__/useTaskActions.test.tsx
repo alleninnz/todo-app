@@ -145,5 +145,114 @@ describe('useTaskActions', () => {
 
       await waitFor(() => expect(showSuccessMock).toHaveBeenCalled())
     })
+
+    it('should rollback on error', async () => {
+      const task: Task = {
+        id: '1',
+        title: 'Keep Me',
+        completed: false,
+        priority: 'low',
+        createdAt: '2023',
+      }
+      queryClient.setQueryData(['tasks'], [task])
+
+      server.use(
+        http.delete('*/tasks/1', () => new HttpResponse(null, { status: 400 }))
+      )
+
+      const { result } = renderHook(() => useTaskActions(), { wrapper })
+
+      result.current.deleteTask('1')
+
+      await waitFor(() => {
+        const tasks = queryClient.getQueryData<Task[]>(['tasks'])
+        expect(tasks).toHaveLength(1)
+        expect(tasks?.[0].id).toBe('1')
+        expect(showErrorMock).toHaveBeenCalled()
+      })
+    })
+  })
+
+  describe('toggleComplete', () => {
+    it('should toggle task completion', async () => {
+      const task: Task = {
+        id: '1',
+        title: 'Toggle Me',
+        completed: false,
+        priority: 'low',
+        createdAt: '2023',
+      }
+      queryClient.setQueryData(['tasks'], [task])
+
+      server.use(
+        http.patch('*/tasks/1', () =>
+          HttpResponse.json({ ...task, completed: true })
+        )
+      )
+
+      const { result } = renderHook(() => useTaskActions(), { wrapper })
+
+      result.current.toggleComplete('1', true)
+
+      await waitFor(() => {
+        const tasks = queryClient.getQueryData<Task[]>(['tasks'])
+        expect(tasks?.[0].completed).toBe(true)
+      })
+
+      await waitFor(() => expect(showSuccessMock).toHaveBeenCalled())
+    })
+  })
+
+  describe('loading states', () => {
+    it('should track isCreating state', async () => {
+      const newTask: TaskDraft = {
+        title: 'New Task',
+        completed: false,
+        priority: 'low',
+      }
+
+      server.use(
+        http.post('*/tasks', async () => {
+          await new Promise(resolve => setTimeout(resolve, 50))
+          return HttpResponse.json({ ...newTask, id: '1', createdAt: '2023' }, { status: 201 })
+        })
+      )
+
+      const { result } = renderHook(() => useTaskActions(), { wrapper })
+
+      expect(result.current.isCreating).toBe(false)
+
+      result.current.createTask(newTask)
+
+      await waitFor(() => expect(result.current.isCreating).toBe(true))
+      await waitFor(() => expect(result.current.isCreating).toBe(false))
+    })
+
+    it('should track per-item updating state', async () => {
+      const task: Task = {
+        id: '1',
+        title: 'Test',
+        completed: false,
+        priority: 'low',
+        createdAt: '2023',
+      }
+      queryClient.setQueryData(['tasks'], [task])
+
+      server.use(
+        http.patch('*/tasks/1', async () => {
+          await new Promise(resolve => setTimeout(resolve, 50))
+          return HttpResponse.json({ ...task, title: 'Updated' })
+        })
+      )
+
+      const { result } = renderHook(() => useTaskActions(), { wrapper })
+
+      expect(result.current.isTaskUpdating('1')).toBe(false)
+
+      result.current.updateTask('1', { title: 'Updated' })
+
+      await waitFor(() => expect(result.current.isTaskUpdating('1')).toBe(true))
+      await waitFor(() => expect(result.current.isTaskUpdating('1')).toBe(false))
+    })
   })
 })
