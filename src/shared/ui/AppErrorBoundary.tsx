@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { getErrorInfo, type ErrorAction } from '../lib/error'
+import { getErrorInfo, type ErrorAction } from '@shared/lib/error'
 import { ErrorPageUI } from './ErrorPage'
 
 /**

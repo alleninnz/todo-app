@@ -7,7 +7,7 @@ import {
 } from 'notistack'
 import { memo, type ReactNode } from 'react'
 
-import { env } from '../config/env'
+import { env } from '@shared/config/env'
 
 /**
  * Props for SnackbarProvider

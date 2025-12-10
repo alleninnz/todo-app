@@ -18,7 +18,7 @@ import {
   HTTP_ERROR_MESSAGES,
   type ErrorAction,
   type ErrorPageInfo,
-} from '../lib/error'
+} from '@shared/lib/error'
 
 /**
  * ErrorPageUI component props
