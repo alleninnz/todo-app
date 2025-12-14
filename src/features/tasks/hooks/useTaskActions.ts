@@ -33,7 +33,12 @@ export const useTaskActions = () => {
     [queryClient]
   )
 
-  const createMutation = useMutation<Task, Error, TaskDraft, CreateMutationContext>({
+  const createMutation = useMutation<
+    Task,
+    Error,
+    TaskDraft,
+    CreateMutationContext
+  >({
     mutationFn: taskService.create,
     onMutate: async newTask => {
       await queryClient.cancelQueries({ queryKey: taskKeys.all })
@@ -63,7 +68,12 @@ export const useTaskActions = () => {
     onSettled: invalidateTasks,
   })
 
-  const updateMutation = useMutation<Task, Error, { id: string; data: TaskUpdate }, UpdateMutationContext>({
+  const updateMutation = useMutation<
+    Task,
+    Error,
+    { id: string; data: TaskUpdate },
+    UpdateMutationContext
+  >({
     mutationFn: ({ id, data }) => taskService.update(id, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: taskKeys.all })
@@ -93,7 +103,12 @@ export const useTaskActions = () => {
     },
   })
 
-  const deleteMutation = useMutation<void, Error, string, DeleteMutationContext>({
+  const deleteMutation = useMutation<
+    void,
+    Error,
+    string,
+    DeleteMutationContext
+  >({
     mutationFn: taskService.delete,
     onMutate: async id => {
       await queryClient.cancelQueries({ queryKey: taskKeys.all })
@@ -130,13 +145,15 @@ export const useTaskActions = () => {
   )
 
   const toggleComplete = useCallback(
-    (id: string, completed: boolean) => updateMutation.mutate({ id, data: { completed } }),
+    (id: string, completed: boolean) =>
+      updateMutation.mutate({ id, data: { completed } }),
     [updateMutation]
   )
 
   // Per-item loading state helpers
   const isTaskUpdating = useCallback(
-    (id: string) => updateMutation.isPending && updateMutation.variables?.id === id,
+    (id: string) =>
+      updateMutation.isPending && updateMutation.variables?.id === id,
     [updateMutation.isPending, updateMutation.variables]
   )
 
