@@ -1,147 +1,415 @@
-# Custom Hooks 指南
+# Custom Hooks Guide
 
-本项目提供了一套强大的 React Hooks，用于简化异步状态管理和用户反馈通知。
+This project provides a powerful set of React Hooks to simplify async state management and user feedback notifications.
 
-## 目录
+## Table of Contents
 
 - [React Query Integration](#react-query-integration) - Data Fetching & Caching
+- [useTasks](#usetasks) - Task Query Hook
+- [useTaskActions](#usetaskactions) - Task Mutation Hook
 - [useSnackbar](#usesnackbar) - Global Notification System
 
 ---
 
 ## React Query Integration
 
-**Library**: `@tanstack/react-query`
+**Library**: `@tanstack/react-query` v5.90.12
 
-We use React Query for all server state management (fetching, caching, synchronizing and updating server state). It replaces the legacy `useAsyncState` hook.
+We use React Query for all server state management (fetching, caching, synchronizing and updating server state). It provides automatic background updates, optimistic updates, and intelligent caching.
 
 ### Core Principles
 
-- **Server State**: Data that persists remotely (API). managed by React Query.
+- **Server State**: Data that persists remotely (API), managed by React Query.
 - **Client State**: UI state (modals, form inputs), managed by Zustand or `useState`.
 - **Stale-While-Revalidate**: Data is cached and background updated.
+- **Optimistic Updates**: UI updates immediately, rolls back on error.
 
-### Usage Patterns
+### Query Client Configuration
 
-#### 1. Fetching Data (useQuery)
+React Query is configured globally in the application through the `@tanstack/react-query` provider. The application uses React Query v5.90.12 for server state management with automatic caching, background updates, and intelligent refetching.
 
-Wrap API calls in custom hooks to ensure query keys are consistent.
+**Provider Setup** (`src/app/providers.tsx`):
 
 ```tsx
-// features/tasks/hooks/useTasks.ts
-import { useQuery } from '@tanstack/react-query'
-import { taskService } from '../services/task.service'
-import { taskKeys } from './task.keys' // centralized keys
+import { AppErrorBoundary } from '@/shared/ui/AppErrorBoundary'
+import { SnackbarProvider } from '@/shared/ui'
+import { ThemeProvider } from '@emotion/react'
+import CssBaseline from '@mui/material/CssBaseline'
+import { RouterProvider } from 'react-router-dom'
+import { router } from './routes'
+import { theme } from '@/shared/config/theme'
+import { env } from '@/shared/config/env'
 
-export const useTasks = (filters: TaskFilters) => {
-  return useQuery({
-    queryKey: taskKeys.list(filters),
-    queryFn: () => taskService.getAll(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+// Initialize MSW when feature flag is enabled
+if (env.VITE_ENABLE_MSW && import.meta.env.DEV) {
+  const { worker } = await import('@/test/mocks/browser')
+  await worker.start({
+    onUnhandledRequest: 'warn',
   })
+}
+
+export const AppProviders = () => {
+  return (
+    <AppErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <SnackbarProvider>
+          <RouterProvider router={router} />
+        </SnackbarProvider>
+      </ThemeProvider>
+    </AppErrorBoundary>
+  )
 }
 ```
 
-#### 2. Mutating Data (useMutation)
+**Note**: React Query is configured with default options at the hook level (see `useTasks` implementation below).
 
-Use mutations for CUD operations (Create, Update, Delete).
+---
 
-```tsx
-// features/tasks/hooks/useTaskMutations.ts
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSnackbar } from '@shared/hooks/useSnackbar'
-import { taskService } from '../services/task.service'
-import { taskKeys } from './task.keys'
+## useTasks
 
-export const useCreateTask = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useSnackbar()
+**Location**: `src/features/tasks/hooks/useTasks.ts`
 
-  return useMutation({
-    mutationFn: taskService.create,
-    onSuccess: newTask => {
-      showSuccess(`Created "${newTask.title}"`)
-      // Invalidate list to refetch
-      queryClient.invalidateQueries({ queryKey: taskKeys.lists() })
-    },
-    onError: error => {
-      showError('Failed to create task')
-    },
-  })
-}
-```
+React Query hook for fetching tasks with client-side filtering and sorting. This hook combines server state management with client-side data transformations.
 
-#### 3. Query Key Management
+### useTasks Features
 
-Maintain query keys in a dedicated factory file to avoid invalidation bugs.
+- ✅ **Automatic Caching** - Fetched tasks are cached for 30 seconds (configurable)
+- ✅ **Client-Side Filtering** - Filter by status (all/active/completed) and priority
+- ✅ **Client-Side Sorting** - Sort by createdAt, dueDate, or priority with asc/desc direction
+- ✅ **Derived Counts** - Automatic totalCount, activeCount, completedCount from raw data
+- ✅ **Loading States** - isLoading, isEmpty, hasTasks helpers
+- ✅ **Performance Optimized** - Uses useMemo for filtered/sorted results
+
+### useTasks API
 
 ```typescript
-// features/tasks/hooks/task.keys.ts
+interface UseTasksOptions {
+  filters?: TaskFilters // { status: 'all' | 'active' | 'completed', priority?: TaskPriority }
+  sort?: TaskSortOption // { field: 'createdAt' | 'dueDate' | 'priority', direction: 'asc' | 'desc' }
+  enabled?: boolean // Enable/disable query (default: true)
+  staleTime?: number // Cache duration in ms (default: 30000)
+}
+
+interface UseTasksResult {
+  // Filtered and sorted tasks
+  tasks: Task[]
+  allTasks: Task[] | undefined // Raw unfiltered data
+
+  // Derived counts
+  totalCount: number
+  activeCount: number
+  completedCount: number
+
+  // State helpers
+  isEmpty: boolean // isSuccess && tasks.length === 0
+  hasTasks: boolean // isSuccess && tasks.length > 0
+
+  // React Query states
+  isLoading: boolean
+  isError: boolean
+  isSuccess: boolean
+  error: Error | null
+  refetch: () => void
+}
+```
+
+### useTasks Examples
+
+#### Basic Fetching
+
+```tsx
+import { useTasks } from '@/features/tasks/hooks/useTasks'
+
+function TaskList() {
+  const { tasks, isLoading, isError, error } = useTasks()
+
+  if (isLoading) return <LoadingSkeleton />
+  if (isError) return <ErrorState error={error} />
+
+  return (
+    <ul>
+      {tasks.map(task => (
+        <TaskItem key={task.id} task={task} />
+      ))}
+    </ul>
+  )
+}
+```
+
+#### With Filtering
+
+```tsx
+function ActiveTasks() {
+  const { tasks, activeCount } = useTasks({
+    filters: { status: 'active' },
+  })
+
+  return (
+    <div>
+      <h2>Active Tasks ({activeCount})</h2>
+      <TaskList tasks={tasks} />
+    </div>
+  )
+}
+```
+
+#### With Sorting
+
+```tsx
+function TasksByPriority() {
+  const { tasks } = useTasks({
+    sort: { field: 'priority', direction: 'desc' },
+  })
+
+  return <TaskList tasks={tasks} />
+}
+```
+
+#### Dynamic Filters and Sort
+
+```tsx
+function FilterableTaskList() {
+  const [status, setStatus] = useState<TaskStatus>('all')
+  const [sortField, setSortField] = useState<TaskSortField>('createdAt')
+
+  const { tasks, totalCount, activeCount, completedCount, isEmpty } = useTasks({
+    filters: { status },
+    sort: { field: sortField, direction: 'desc' },
+  })
+
+  if (isEmpty) return <EmptyState />
+
+  return (
+    <div>
+      <StatusTabs
+        status={status}
+        onChange={setStatus}
+        counts={{
+          total: totalCount,
+          active: activeCount,
+          completed: completedCount,
+        }}
+      />
+      <SortMenu value={sortField} onChange={setSortField} />
+      <TaskList tasks={tasks} />
+    </div>
+  )
+}
+```
+
+---
+
+## useTaskActions
+
+**Location**: `src/features/tasks/hooks/useTaskActions.ts`
+
+React Query mutation hook for task CRUD operations with optimistic updates and automatic rollback.
+
+### useTaskActions Features
+
+- ✅ **Optimistic Updates** - UI updates instantly before server response
+- ✅ **Automatic Rollback** - Reverts changes on error
+- ✅ **Snackbar Feedback** - Success/error notifications automatically
+- ✅ **Cache Invalidation** - Automatically refetches after mutations
+- ✅ **Per-Item Loading States** - Track loading state for individual tasks
+
+### useTaskActions API
+
+```typescript
+interface UseTaskActionsReturn {
+  // Mutation functions (fire and forget)
+  createTask: (data: TaskDraft) => void
+  updateTask: (id: string, data: TaskUpdate) => void
+  deleteTask: (id: string) => void
+  toggleComplete: (id: string, completed: boolean) => void
+
+  // Async versions (for promise-based workflows)
+  createTaskAsync: (data: TaskDraft) => Promise<Task>
+  updateTaskAsync: (args: { id: string; data: TaskUpdate }) => Promise<Task>
+  deleteTaskAsync: (id: string) => Promise<void>
+
+  // Global loading states
+  isCreating: boolean
+  isUpdating: boolean
+  isDeleting: boolean
+
+  // Per-item loading states
+  isTaskUpdating: (id: string) => boolean
+  isTaskDeleting: (id: string) => boolean
+}
+```
+
+### useTaskActions Examples
+
+#### Basic CRUD Operations
+
+```tsx
+import { useTaskActions } from '@/features/tasks/hooks/useTaskActions'
+
+function TaskManager() {
+  const { createTask, updateTask, deleteTask, toggleComplete } =
+    useTaskActions()
+
+  const handleCreate = () => {
+    createTask({
+      title: 'New Task',
+      description: 'Task description',
+      priority: 'medium',
+    })
+    // Snackbar shows: "Task 'New Task' created"
+  }
+
+  const handleUpdate = (id: string) => {
+    updateTask(id, { title: 'Updated Title' })
+    // Snackbar shows: "Task 'Updated Title' updated"
+  }
+
+  const handleDelete = (id: string) => {
+    deleteTask(id)
+    // Snackbar shows: "Task deleted"
+  }
+
+  const handleToggle = (id: string, completed: boolean) => {
+    toggleComplete(id, completed)
+    // Optimistically updates UI, rolls back on error
+  }
+
+  return <TaskForm onSubmit={handleCreate} />
+}
+```
+
+#### With Loading States
+
+```tsx
+function TaskItem({ task }: { task: Task }) {
+  const { deleteTask, isTaskDeleting, toggleComplete, isTaskUpdating } =
+    useTaskActions()
+
+  const isDeleting = isTaskDeleting(task.id)
+  const isUpdating = isTaskUpdating(task.id)
+
+  return (
+    <div>
+      <Checkbox
+        checked={task.completed}
+        onChange={e => toggleComplete(task.id, e.target.checked)}
+        disabled={isUpdating}
+      />
+      <span>{task.title}</span>
+      <IconButton onClick={() => deleteTask(task.id)} disabled={isDeleting}>
+        {isDeleting ? <CircularProgress size={20} /> : <DeleteIcon />}
+      </IconButton>
+    </div>
+  )
+}
+```
+
+#### Async/Await Pattern
+
+```tsx
+function TaskFormDialog() {
+  const { createTaskAsync, isCreating } = useTaskActions()
+  const [open, setOpen] = useState(true)
+
+  const handleSubmit = async (values: TaskDraft) => {
+    try {
+      const newTask = await createTaskAsync(values)
+      // Task created successfully
+      setOpen(false)
+      console.log('Created task:', newTask)
+    } catch (error) {
+      // Error handled automatically by mutation (snackbar shown)
+      // Keep dialog open for retry
+    }
+  }
+
+  return (
+    <Dialog open={open}>
+      <TaskForm onSubmit={handleSubmit} isSubmitting={isCreating} />
+    </Dialog>
+  )
+}
+```
+
+#### Optimistic Update Example
+
+```tsx
+function QuickCompleteButton({ task }: { task: Task }) {
+  const { toggleComplete } = useTaskActions()
+
+  // UI updates instantly, then syncs with server
+  // Automatically rolls back if server request fails
+  return (
+    <Button onClick={() => toggleComplete(task.id, !task.completed)}>
+      {task.completed ? 'Mark Incomplete' : 'Mark Complete'}
+    </Button>
+  )
+}
+```
+
+### Query Key Management
+
+The hook uses a centralized query key factory to ensure cache invalidation works correctly:
+
+```typescript
 export const taskKeys = {
   all: ['tasks'] as const,
   lists: () => [...taskKeys.all, 'list'] as const,
-  list: (filters: TaskFilters) => [...taskKeys.lists(), { filters }] as const,
   details: () => [...taskKeys.all, 'detail'] as const,
   detail: (id: string) => [...taskKeys.details(), id] as const,
 }
 ```
 
-### Best Practices
-
-1. **Colocate Hooks**: Keep query hooks in `features/{feature}/hooks/`.
-2. **Centralize Keys**: Always use a Query Key Factory.
-3. **Optimistic Updates**: Use `onMutate` to update cache instantly for better UX.
-4. **Error Handling**: Let global `onError` in `QueryClient` handle generic errors (like 500s), handle form errors locally.
-
 ---
 
 ## useSnackbar
 
-**位置**: `src/shared/hooks/useSnackbar.ts`
+**Location**: `src/shared/hooks/useSnackbar.ts`
 
-基于 `notistack` 封装的类型安全通知 Hook，提供统一的用户反馈接口。
+Type-safe notification hook wrapping `notistack`, providing a unified user feedback interface.
 
-### useSnackbar 核心特性
+### useSnackbar Features
 
-- ✅ **类型安全** - TypeScript 完整类型定义
-- ✅ **多种变体** - 支持 success、error、warning、info、default 五种通知类型
-- ✅ **灵活配置** - 支持自定义时长、防重复、自定义操作等
-- ✅ **全局控制** - 提供 close 和 closeAll 方法
-- ✅ **简洁 API** - 语义化方法名，易于使用
+- ✅ **Type Safety** - Full TypeScript type definitions
+- ✅ **Multiple Variants** - success, error, warning, info, default notification types
+- ✅ **Flexible Configuration** - Custom duration, prevent duplicates, custom actions
+- ✅ **Global Control** - close and closeAll methods
+- ✅ **Clean API** - Semantic method names, easy to use
 
-### useSnackbar API 参考
+### useSnackbar API
 
-#### 方法列表
+#### Method List
 
-| 方法                             | 用途         | 默认时长 | 颜色   |
-| -------------------------------- | ------------ | -------- | ------ |
-| `showSuccess(message, options?)` | 成功通知     | 4 秒     | 绿色   |
-| `showError(message, options?)`   | 错误通知     | 6 秒     | 红色   |
-| `showWarning(message, options?)` | 警告通知     | 4 秒     | 橙色   |
-| `showInfo(message, options?)`    | 信息通知     | 4 秒     | 蓝色   |
-| `show(message, options?)`        | 默认通知     | 4 秒     | 中性灰 |
-| `close(key)`                     | 关闭指定通知 | -        | -      |
-| `closeAll()`                     | 关闭所有通知 | -        | -      |
+| Method                           | Purpose         | Default Duration | Color  |
+| -------------------------------- | --------------- | ---------------- | ------ |
+| `showSuccess(message, options?)` | Success message | 4 seconds        | Green  |
+| `showError(message, options?)`   | Error message   | 6 seconds        | Red    |
+| `showWarning(message, options?)` | Warning message | 4 seconds        | Orange |
+| `showInfo(message, options?)`    | Info message    | 4 seconds        | Blue   |
+| `show(message, options?)`        | Default message | 4 seconds        | Gray   |
+| `close(key)`                     | Close specific  | -                | -      |
+| `closeAll()`                     | Close all       | -                | -      |
 
-#### 配置选项
+#### Configuration Options
 
 ```typescript
 interface SnackbarOptions {
-  autoHideDuration?: number // 自动隐藏时长（毫秒）
-  preventDuplicate?: boolean // 防止重复消息（默认 false）
-  persist?: boolean // 是否持久显示（默认 false）
-  action?: React.ReactNode // 自定义操作按钮
+  autoHideDuration?: number // Auto-hide duration (milliseconds)
+  preventDuplicate?: boolean // Prevent duplicate messages (default: false)
+  persist?: boolean // Persist until manually closed (default: false)
+  action?: React.ReactNode // Custom action button
   anchorOrigin?: {
-    // 显示位置
+    // Display position
     vertical: 'top' | 'bottom'
     horizontal: 'left' | 'center' | 'right'
   }
 }
 ```
 
-### useSnackbar 使用示例
+### useSnackbar Examples
 
-#### 基础用法
+#### Basic Usage
 
 ```tsx
 import { useSnackbar } from '@shared/hooks/useSnackbar'
@@ -150,22 +418,19 @@ function MyComponent() {
   const { showSuccess, showError, showWarning, showInfo } = useSnackbar()
 
   const handleSave = async () => {
-    // When using with React Query's onError/onSuccess callbacks,
-    // this try/catch block is often unnecessary.
-    // But for standalone async operations:
     try {
       await saveTask()
-      showSuccess('任务保存成功')
+      showSuccess('Task saved successfully')
     } catch (error) {
-      showError('任务保存失败，请重试')
+      showError('Failed to save task, please retry')
     }
   }
 
-  return <button onClick={handleSave}>保存</button>
+  return <button onClick={handleSave}>Save</button>
 }
 ```
 
-#### Combine with React Query
+#### Combined with React Query
 
 ```tsx
 import { useMutation } from '@tanstack/react-query'
@@ -188,7 +453,7 @@ function TaskForm() {
 }
 ```
 
-#### 自定义配置
+#### Custom Configuration
 
 ```tsx
 import { useSnackbar } from '@shared/hooks/useSnackbar'
@@ -197,18 +462,18 @@ function AdvancedExample() {
   const { showWarning, close } = useSnackbar()
 
   const handleWarning = () => {
-    const key = showWarning('此操作不可撤销', {
-      autoHideDuration: 8000, // 显示 8 秒
-      preventDuplicate: true, // 防止重复显示
-      action: <Button onClick={() => close(key)}>知道了</Button>,
+    const key = showWarning('This action cannot be undone', {
+      autoHideDuration: 8000, // Show for 8 seconds
+      preventDuplicate: true, // Prevent duplicate display
+      action: <Button onClick={() => close(key)}>Got it</Button>,
     })
   }
 
-  return <button onClick={handleWarning}>显示警告</button>
+  return <button onClick={handleWarning}>Show Warning</button>
 }
 ```
 
-#### 持久通知与手动关闭
+#### Persistent Notification
 
 ```tsx
 import { useState } from 'react'
@@ -219,8 +484,8 @@ function PersistentNotification() {
   const [notificationKey, setNotificationKey] = useState<string | null>(null)
 
   const showPersistent = () => {
-    const key = show('正在处理，请稍候...', {
-      persist: true, // 持久显示，不自动隐藏
+    const key = show('Processing, please wait...', {
+      persist: true, // Persist until manually closed
     })
     setNotificationKey(key)
   }
@@ -234,14 +499,14 @@ function PersistentNotification() {
 
   return (
     <div>
-      <button onClick={showPersistent}>显示持久通知</button>
-      <button onClick={hidePersistent}>关闭通知</button>
+      <button onClick={showPersistent}>Show Persistent</button>
+      <button onClick={hidePersistent}>Close</button>
     </div>
   )
 }
 ```
 
-#### 批量操作反馈
+#### Batch Operation Feedback
 
 ```tsx
 import { useSnackbar } from '@shared/hooks/useSnackbar'
@@ -250,25 +515,27 @@ function BulkActions() {
   const { showSuccess, showError, showInfo } = useSnackbar()
 
   const handleBulkDelete = async (ids: string[]) => {
-    showInfo(`正在删除 ${ids.length} 个任务...`)
+    showInfo(`Deleting ${ids.length} tasks...`)
 
     try {
       await api.bulkDelete(ids)
-      showSuccess(`成功删除 ${ids.length} 个任务`)
+      showSuccess(`Successfully deleted ${ids.length} tasks`)
     } catch (error) {
-      showError('批量删除失败，请重试')
+      showError('Bulk delete failed, please retry')
     }
   }
 
-  return <button onClick={() => handleBulkDelete(selectedIds)}>批量删除</button>
+  return (
+    <button onClick={() => handleBulkDelete(selectedIds)}>Bulk Delete</button>
+  )
 }
 ```
 
-### 全局配置
+### Global Configuration
 
-#### Provider 配置
+#### Provider Configuration
 
-在应用根组件中配置全局默认值：
+Configure global defaults in the root component:
 
 ```tsx
 // src/shared/ui/SnackbarProvider.tsx
@@ -281,14 +548,13 @@ export const SnackbarProvider = ({
 }) => {
   return (
     <NotistackProvider
-      maxSnack={3} // 最多同时显示 3 个通知
-      autoHideDuration={4000} // 默认 4 秒后隐藏
+      maxSnack={3} // Max 3 notifications at once
+      autoHideDuration={4000} // Default 4 seconds
       anchorOrigin={{
-        // 默认显示位置
         vertical: 'top',
         horizontal: 'right',
       }}
-      preventDuplicate // 全局防止重复通知
+      preventDuplicate // Global duplicate prevention
     >
       {children}
     </NotistackProvider>
@@ -296,47 +562,34 @@ export const SnackbarProvider = ({
 }
 ```
 
-#### 环境变量配置
+### Best Practices
 
-在 `src/shared/config/env.ts` 中配置：
-
-```typescript
-export const env = {
-  snackbar: {
-    maxStack: 3,
-    autoHideDuration: 4000,
-  },
-}
-```
-
-### useSnackbar 最佳实践
-
-1. **为不同场景选择合适的通知类型**
+1. **Choose appropriate notification types**
 
    ```tsx
-   showSuccess('保存成功') // 操作成功
-   showError('网络连接失败') // 错误提示
-   showWarning('即将过期') // 警告信息
-   showInfo('正在同步数据...') // 一般信息
+   showSuccess('Save successful') // Operation success
+   showError('Network connection failed') // Error message
+   showWarning('About to expire') // Warning info
+   showInfo('Syncing data...') // General info
    ```
 
-2. **错误通知显示时间可以更长**
+2. **Error notifications can be shown longer**
 
    ```tsx
-   showError('操作失败', { autoHideDuration: 6000 })
+   showError('Operation failed', { autoHideDuration: 6000 })
    ```
 
-3. **防止重复通知**
+3. **Prevent duplicate notifications**
 
    ```tsx
-   showSuccess('已添加到收藏', { preventDuplicate: true })
+   showSuccess('Added to favorites', { preventDuplicate: true })
    ```
 
-4. **提供操作按钮增强交互**
+4. **Provide action buttons for better interaction**
 
    ```tsx
-   showWarning('删除后无法恢复', {
-     action: <Button onClick={handleUndo}>撤销</Button>,
+   showWarning('Cannot be undone after deletion', {
+     action: <Button onClick={handleUndo}>Undo</Button>,
    })
    ```
 
@@ -410,9 +663,10 @@ function TaskManager() {
 
 ---
 
-## 相关资源
+## Related Resources
 
-- [React Hooks 官方文档](https://react.dev/reference/react)
-- [TypeScript 泛型](https://www.typescriptlang.org/docs/handbook/2/generics.html)
-- [notistack 文档](https://notistack.com/)
-- [判别联合类型](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html#discriminated-unions)
+- [React Hooks Official Documentation](https://react.dev/reference/react)
+- [TanStack Query Documentation](https://tanstack.com/query/latest)
+- [TypeScript Generics](https://www.typescriptlang.org/docs/handbook/2/generics.html)
+- [notistack Documentation](https://notistack.com/)
+- [Discriminated Union Types](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html#discriminated-unions)

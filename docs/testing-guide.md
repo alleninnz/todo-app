@@ -279,7 +279,18 @@ test: {
 **Key Features:**
 
 - ✅ **jsdom environment** - DOM testing without a browser
-- ✅ **MSW (Mock Service Worker)** - API mocking
+- ✅ **MSW (Mock Service Worker) 2.12.4** - API mocking for integration tests
 - ✅ **CSS disabled** - Avoids jsdom CSS parsing warnings
-- ✅ **Global test utilities** - `describe`, `it`, `expect` available everywhere
+- ✅ **Global test utilities** - `describe`, `it`, `expect` available everywhere (via globals: true)
 - ✅ **Automatic cleanup** - React Testing Library cleanup after each test
+- ✅ **@testing-library/jest-dom** - Custom matchers for DOM testing
+- ✅ **Vitest 4.0.15** - Fast unit test runner with Watch mode UI
+- ✅ **Coverage** - Vitest coverage with v8 provider
+
+**Setup Files:**
+
+- `src/test/setup-env.ts` - Environment variables and polyfills
+- `src/test/setup.ts` - MSW server lifecycle (beforeAll, afterEach, afterAll) and jest-dom matchers
+- `src/test/mocks/handlers.ts` - MSW request handlers for API mocking
+- `src/test/mocks/server.ts` - MSW server configuration
+- `src/test/mocks/browser.ts` - MSW browser worker configuration (for Storybook)

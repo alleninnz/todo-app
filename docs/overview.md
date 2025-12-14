@@ -1,19 +1,19 @@
-# 项目阶段规划
+# Project Phase Planning
 
-## 阶段一：Core (MVP)
+## Phase One: Core (MVP)
 
-目标是交付最小可用版本，涵盖以下能力：
+The goal is to deliver a minimum viable version covering the following capabilities:
 
-1. 任务 CRUD：创建 / 编辑 / 删除任务（标题必填）。
-2. 状态切换：标记完成 / 未完成。
-3. 可选截止日期与优先级（无 / 低 / 中 / 高）。
-4. 备注描述字段。
-5. 列表视图与筛选：全部 / 进行中 / 已完成。
-6. 排序：按创建时间 / 截止日期 / 优先级。
-7. 空状态、加载中状态、错误状态展示。
-8. 与后端服务交互持久化数据（通过 Ky HTTP 客户端）。
+1. Task CRUD: Create / Edit / Delete tasks (title required).
+2. Status toggle: Mark completed / uncompleted.
+3. Optional due date and priority (none / low / medium / high).
+4. Note description field.
+5. List view with filters: All / Active / Completed.
+6. Sorting: By creation time / due date / priority.
+7. Empty state, loading state, error state display.
+8. Integration with backend service for data persistence (via Ky HTTP client).
 
-### 第一阶段项目结构
+### Phase One Project Structure
 
 ```text
 ├─ .env
@@ -60,15 +60,12 @@
 │  │     │  └─ TaskList.tsx
 │  │     ├─ hooks/
 │  │     │  ├─ useTaskActions.ts
-│  │     │  └─ useTaskDetail.ts
+│  │     │  ├─ useTaskDetail.ts
+│  │     │  └─ useTasks.ts
 │  │     ├─ services/
-│  │     │  ├─ task.mapper.ts
-│  │     │  ├─ task.paths.ts
 │  │     │  └─ task.service.ts
 │  │     ├─ store/
 │  │     │  └─ tasks.store.ts
-│  │     ├─ types/
-│  │     │  └─ task.types.ts
 │  │     ├─ validation/
 │  │     │  └─ task.schema.ts
 │  │     └─ index.ts
@@ -88,8 +85,11 @@
 │  │  │  └─ useSnackbar.ts
 │  │  ├─ lib/
 │  │  │  ├─ date.ts
+│  │  │  ├─ error.ts
 │  │  │  └─ format.ts
 │  │  ├─ types/
+│  │  │  ├─ api.types.ts
+│  │  │  ├─ index.ts
 │  │  │  └─ task.types.ts
 │  │  └─ ui/
 │  │     ├─ AppErrorBoundary.tsx
@@ -102,6 +102,11 @@
 │  │  └─ index.ts
 │  │
 │  ├─ test/
+│  │  ├─ mocks/
+│  │  │  ├─ browser.ts
+│  │  │  ├─ handlers.ts
+│  │  │  └─ server.ts
+│  │  ├─ setup-env.ts
 │  │  └─ setup.ts
 │  │
 │  ├─ main.tsx
@@ -112,89 +117,142 @@
 
 ```
 
-### 目录与文件说明
+### Directory and File Description
 
-#### 命名与分层约定
+#### Naming and Layering Conventions
 
-- .types.ts：仅类型声明（领域或共享）。不得包含实现或副作用。
-- .store.ts：Zustand 切片。仅同步状态与 actions，不写异步。
-- .service.ts：业务服务（HTTP 调用、领域转换的编排）。不依赖 React。
-- .paths.ts：API 路径与路径生成器（紧邻领域）。
-- .mapper.ts：DTO ↔ 领域模型转换的唯一来源。
-- .schema.ts：输入/表单校验的结构定义（RHF 内置规则或第三方校验器的描述）。
-- .tsx：纯 UI 组件与容器组件。组件内不直接触碰 HTTP，统一通过 hooks 调用服务。
-- shared/\*：跨域基础设施（HTTP 客户端、主题、通用 hooks、工具函数、共享模型、通用 UI）。
-- features/\*：以领域（tasks、lists）为单位的内聚实现，包含 components/hooks/services/store/types/validation。
+- `.types.ts`: Type declarations only (domain or shared). Must not contain implementation or side effects.
+- `.store.ts`: Zustand slice. Only synchronous state and actions, no asynchronous operations.
+- `.service.ts`: Business service (HTTP calls, domain transformation orchestration). Not dependent on React.
+- `.schema.ts`: Input/form validation structure definition (RHF built-in rules or third-party validator descriptions).
+- `.tsx`: Pure UI components and container components. Components do not directly touch HTTP; they uniformly call services through hooks.
+- `shared/*`: Cross-domain infrastructure (HTTP client, theme, general hooks, utility functions, shared models, general UI).
+- `features/*`: Domain-cohesive implementation (tasks, lists) including components/hooks/services/store/types/validation.
 
-#### 各目录与文件的用途
+#### Directory and File Purposes
 
-##### 根目录
+##### Root Directory
 
-- .env / .env.example：环境变量（Vite 只识别以 VITE\_ 开头的变量）；.env.example 指导团队如何配置。
-- README.md：项目概述、开发/构建/部署命令、约定。
-- docs/project-phases.md：阶段目标、验收清单、后续路线图。
-- public/：静态资源（构建时原样拷贝）。
+- `.env` / `.env.example`: Environment variables (Vite only recognizes variables starting with `VITE_`); `.env.example` guides the team on configuration.
+- `README.md`: Project overview, development/build/deployment commands, conventions.
+- `docs/overview.md`: Phase objectives, acceptance checklist, subsequent roadmap.
+- `public/`: Static resources (copied as-is during build).
 
-##### src/app（应用外壳层）
+##### src/app (Application Shell Layer)
 
-- App.tsx：应用根组件（薄），只负责把 Providers/路由装配起来。
-- index.css：全局样式入口（Tailwind 层、Reset、变量）。
-- providers.tsx：统一挂载全局 Provider（Theme、Snackbar、ErrorBoundary、Router 等），顺序至关重要：ErrorBoundary → Theme → Snackbar → Router。
-- routes.tsx：路由表（懒加载），业务数据不要写在这里。
+- `App.tsx`: Application root component (thin), only responsible for assembling Providers/routing.
+- `index.css`: Global style entry point (Tailwind layers, Reset, variables).
+- `providers.tsx`: Unified mounting of global Providers (Theme, Snackbar, ErrorBoundary, Router, etc.). Order is crucial: ErrorBoundary → Theme → QueryClient → Snackbar → Router.
+- `routes.tsx`: Route table (lazy loading). Business data should not be written here.
 
-##### src/features/lists（列表过滤与排序）
+##### src/features/lists (List Filtering and Sorting)
 
-- components/：FilterBar.tsx、SortMenu.tsx、StatusTabs.tsx 只做 UI 与回调。
-- hooks/useListFilters.ts：集中管理过滤/排序状态（MVP 可用内部 state；后续可绑定 URL）。
-- index.ts：对外导出公共 API，形成防腐层。
+- `components/`: FilterBar.tsx, SortMenu.tsx, StatusTabs.tsx only handle UI and callbacks.
+- `hooks/useListFilters.ts`: Centrally manages filtering/sorting state (MVP can use internal state; can bind to URL later).
+- `index.ts`: Export public API to form an anti-corruption layer.
 
-##### src/features/tasks（任务领域）
+##### src/features/tasks (Task Domain)
 
-- components/：
-  - TaskForm.tsx：使用 react-hook-form 的创建/编辑表单（标题必填；截止日期/优先级/备注可选）。
-  - TaskItem.tsx：单条任务 UI（完成切换、编辑、删除）。
-  - TaskList.tsx：任务列表容器（纯渲染 + 回调）。
-  - TaskEmptyState.tsx / TaskErrorState.tsx：三态组件。
-- hooks/：
-  - useTaskActions.ts：封装加载/创建/更新/删除/切换完成的异步业务，调用 task.service.ts 并写入 tasks.store.ts。
-  - useTaskDetail.ts：读取单条任务（可先从 store 读，缺失时请求）。
-- services/：
-  - task.paths.ts：任务 API 路径与构造函数（领域内聚）。
-  - task.mapper.ts：DTO ↔ 领域模型转换的唯一来源。
-  - task.service.ts：调用 httpClient 的纯函数服务（不依赖 React），对外返回统一领域模型。
-- store/：
-  - tasks.store.ts：Zustand 切片，存储 items/order/loading/error 等客户端状态（不写异步）。
-- types/：
-  - task.types.ts：任务域专有类型（如 TaskInput、TaskDTO 等）。注意：跨域公共的 Task 放在 shared/types/task.types.ts。
-- validation/：
-  - task.schema.ts：表单校验结构（即使先用 RHF 内置规则，也定义 schema 作为接口契约，后续可换 zod）。
-- index.ts：对外导出任务域允许访问的实体（组件、hooks、服务类型），屏蔽内部深路径。
+- `components/`:
+  - `TaskForm.tsx`: Create/edit form using react-hook-form (title required; due date/priority/notes optional).
+  - `TaskItem.tsx`: Single task UI (completion toggle, edit, delete).
+  - `TaskList.tsx`: Task list container (pure rendering + callbacks).
+  - `TaskEmptyState.tsx` / `TaskErrorState.tsx`: Three-state components.
+- `hooks/`:
+  - `useTasks.ts`: Query hook for fetching tasks with React Query, provides filtering and sorting.
+  - `useTaskActions.ts`: Encapsulates loading/creating/updating/deleting/toggling completion async business, calls task.service.ts and uses React Query mutations with optimistic updates.
+  - `useTaskDetail.ts`: Reads a single task (can read from cache first, request if missing).
+- `services/`:
+  - `task.service.ts`: Pure function service calling httpClient (not dependent on React), returns unified domain model externally.
+- `store/`:
+  - `tasks.store.ts`: Zustand slice, stores client-side state like UI preferences (not used for server state - React Query handles that).
+- `validation/`:
+  - `task.schema.ts`: Form validation structure (Zod schemas for React Hook Form integration).
+- `index.ts`: Exports task domain entities allowed for external access (components, hooks, service types), shields internal deep paths.
 
-##### src/pages（页面容器层）
+##### src/pages (Page Container Layer)
 
-- TasksPage.tsx：页面拼装（Filter/Sort/Tabs + List + Form），控制三态，通过 useTaskActions() 触发加载/变更。
+- `TasksPage.tsx`: Page assembly (Filter/Sort/Tabs + List + Form), controls three states, triggers loading/changes through useTasks() and useTaskActions().
 
-##### src/shared（跨域共享层）
+##### src/shared (Cross-Domain Shared Layer)
 
-- api/httpClient.ts：Ky 客户端（统一超时、重试、认证、错误转换）。唯一 HTTP 实例。
-- config/env.ts：读取并校验 import.meta.env（比如 VITE_API_BASE_URL），对外导出 env.API_BASE_URL。
-- config/theme.ts：MUI 主题。
-- hooks/：useSnackbar.ts（全局消息）。
-- lib/：date.ts（日期比较/排序 key/逾期判断）、format.ts（文本/优先级/日期格式化）。
-- types/task.types.ts：跨域共享领域模型 Task & Priority（UI/服务/页面统一认这个）。
-- ui/：
-  - AppErrorBoundary.tsx：全局兜底错误边界
-  - AppLayout.tsx：通用布局容器
-  - ErrorPage.tsx：通用错误页面组件（用于路由错误处理）
-  - LoadingSkeleton.tsx：统一骨架屏
-  - SnackbarProvider.tsx：全局消息 Provider
+- `api/httpClient.ts`: Ky client (unified timeout, retry, authentication, error transformation). The only HTTP instance.
+- `config/env.ts`: Reads and validates `import.meta.env` (e.g., VITE_API_BASE_URL), exports env.API_BASE_URL.
+- `config/theme.ts`: MUI theme with aligned breakpoints for Tailwind CSS compatibility.
+- `hooks/`: useSnackbar.ts (global messages wrapping notistack).
+- `lib/`: date.ts (date comparison/sorting key/overdue judgment), format.ts (text/priority/date formatting), error.ts (error categorization and message mapping).
+- `types/task.types.ts`: Cross-domain shared domain model Task & Priority (UI/service/page all recognize this).
+- `ui/`:
+  - `AppErrorBoundary.tsx`: Global error boundary fallback
+  - `AppLayout.tsx`: General layout container
+  - `ErrorPage.tsx`: General error page component (for routing error handling)
+  - `LoadingSkeleton.tsx`: Unified skeleton screen
+  - `SnackbarProvider.tsx`: Global message Provider (wraps notistack)
 
 ##### src/store/index.ts
 
-- 应用级 store 出口：聚合/转发各领域的 store hook（或直接 re-export useTasksStore）。
+- Application-level store export: aggregates/forwards store hooks from each domain (or directly re-exports useTasksStore).
 
-##### 其他
+##### Other
 
-- test/setup.ts：测试全局初始化（jest-dom、mocks、MSW 等）。
-- main.tsx：Vite 入口，挂载 `<App />`。
-- vite-env.d.ts：Vite 环境变量类型提示。
+- `test/setup.ts`: Test global initialization (jest-dom, mocks, MSW lifecycle).
+- `test/setup-env.ts`: Test environment setup (environment variables, polyfills).
+- `test/mocks/`: MSW request handlers and server setup.
+- `main.tsx`: Vite entry point, mounts `<App />`.
+- `vite-env.d.ts`: Vite environment variable type hints.
+
+## Implementation Status
+
+### Phase A — Shared Foundation ✅ COMPLETE
+
+All infrastructure is implemented and tested:
+
+- ✅ Domain types with comprehensive documentation
+- ✅ HTTP client (Ky) with automatic camelCase/snake_case conversion
+- ✅ React Query setup with global defaults
+- ✅ useSnackbar hook wrapping notistack
+- ✅ Utility functions (date, format, error)
+- ✅ Test infrastructure (Vitest + RTL + MSW)
+- ✅ Theme configuration with MUI + Tailwind alignment
+- ✅ Error boundaries and error handling utilities
+
+### Phase B — Task Feature 🚧 PARTIALLY COMPLETE
+
+Backend integration and business logic are complete; UI components are stubs:
+
+- ✅ Service layer (task.service.ts) - Full CRUD implementation
+- ✅ React Query hooks (useTasks, useTaskActions) - Complete with optimistic updates
+- ✅ Validation schemas (Zod) - Form validation ready
+- ✅ Type definitions - Complete domain model
+- ⚠️ Zustand store - Minimal implementation (React Query handles most state)
+- ❌ UI Components - Stubs only (TaskList, TaskItem, TaskForm, etc.)
+- ✅ Unit tests - Services and hooks tested
+
+### Phase C — Lists (Filtering & Sorting) ❌ NOT STARTED
+
+- ❌ useListFilters hook
+- ❌ StatusTabs component
+- ❌ FilterBar component
+- ❌ SortMenu component
+- ❌ Integration tests
+
+### Phase D — Application Shell ✅ COMPLETE
+
+- ✅ Providers composition (providers.tsx)
+- ✅ Routing setup (routes.tsx)
+- ✅ Layout components (AppLayout, ErrorBoundary, etc.)
+- ❌ TasksPage composition (depends on Phase B/C components)
+
+### Phase E — Quality Assurance ❌ NOT STARTED
+
+- ❌ Comprehensive test coverage
+- ❌ Accessibility audit
+- ❌ Performance optimization
+- ❌ Documentation finalization
+
+## Next Steps
+
+1. **Complete Phase B UI Components**: Implement TaskList, TaskItem, TaskForm with full functionality
+2. **Start Phase C**: Build filtering and sorting UI components
+3. **Integrate Phase D**: Compose TasksPage with all feature components
+4. **Quality Gates**: Ensure tests pass, lint checks pass, accessibility standards met

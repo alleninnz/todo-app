@@ -2,7 +2,7 @@
 
 ## Design System Philosophy
 
-This project uses **Material-UI v7** as the primary design system with **Tailwind CSS v4** for layout utilities only. This hybrid approach provides:
+This project uses **Material-UI v7.3.6** as the primary design system with **Tailwind CSS v4.1.17** for layout utilities only. This hybrid approach provides:
 
 - **Consistency**: MUI theme enforces design tokens (colors, spacing, typography)
 - **Productivity**: Pre-built accessible MUI components
@@ -41,8 +41,48 @@ This project uses **Material-UI v7** as the primary design system with **Tailwin
 
 **When to Use**: Global component defaults, design token customization
 
+**Location**: `src/shared/config/theme.ts`
+
+This is the actual theme configuration used in the project:
+
 ```typescript
-// ✅ CORRECT - Define in theme.ts
+import {
+  createTheme,
+  responsiveFontSizes,
+  type ThemeOptions,
+} from '@mui/material/styles'
+
+/**
+ * Align MUI breakpoints with Tailwind CSS for consistency
+ * Prevents responsive behavior conflicts between the two systems
+ */
+const breakpoints: ThemeOptions['breakpoints'] = {
+  values: { xs: 0, sm: 640, md: 768, lg: 1024, xl: 1280 },
+}
+
+/**
+ * Light mode color palette
+ * Optimized for Todo App with task priority and status colors
+ */
+const lightPalette: ThemeOptions['palette'] = {
+  mode: 'light',
+  primary: { main: '#1976d2' }, // Primary actions (create, edit tasks)
+  secondary: { main: '#9c27b0' }, // Secondary emphasis (filters, tags)
+  error: { main: '#d32f2f' }, // High priority tasks, delete actions
+  warning: { main: '#ed6c02' }, // Medium priority tasks, warnings
+  info: { main: '#0288d1' }, // Low priority tasks, info messages
+  success: { main: '#2e7d32' }, // Completed tasks, success feedback
+  neutral: { main: '#64748B' }, // Neutral UI elements (slate-500)
+  background: {
+    default: '#f8fafc', // Lighter background for better contrast
+    paper: '#ffffff',
+  },
+}
+
+/**
+ * Component style overrides and default props
+ * Optimized for Todo App UI patterns (forms, lists, buttons)
+ */
 const components: ThemeOptions['components'] = {
   MuiButton: {
     defaultProps: {
@@ -53,18 +93,64 @@ const components: ThemeOptions['components'] = {
       root: {
         borderRadius: 8,
         fontWeight: 600,
+        padding: '8px 16px',
+      },
+      sizeSmall: {
+        padding: '6px 12px',
+      },
+    },
+  },
+  MuiTextField: {
+    defaultProps: {
+      size: 'small',
+      fullWidth: true,
+      variant: 'outlined',
+    },
+  },
+  MuiChip: {
+    defaultProps: {
+      size: 'small',
+    },
+    styleOverrides: {
+      root: {
+        fontWeight: 500,
       },
     },
   },
 }
+
+/**
+ * Theme factory function
+ * Creates a complete MUI theme with responsive typography
+ */
+export const createAppTheme = (mode: 'light' | 'dark' = 'light') => {
+  const theme = createTheme({
+    breakpoints,
+    palette: mode === 'dark' ? darkPalette : lightPalette,
+    typography,
+    shape,
+    components,
+    zIndex,
+  })
+
+  // Apply responsive font sizing for better mobile experience
+  return responsiveFontSizes(theme, {
+    breakpoints: ['sm', 'md', 'lg'],
+    factor: 2,
+  })
+}
+
+export const theme = createAppTheme('light')
 ```
 
 **Benefits**:
 
-- Centralized design decisions
-- Consistent across entire app
-- Easy to maintain and update
+- Centralized design decisions across the entire application
+- Consistent styling enforced by MUI theme system
+- Easy to maintain and update (single source of truth)
 - Type-safe with TypeScript
+- Automatic responsive font sizes
+- Aligned breakpoints with Tailwind CSS (no conflicts)
 
 ### 2. sx Prop (Preferred for Component-Specific Styles)
 
@@ -295,15 +381,40 @@ const priorityColors = {
 
 **Breakpoint Reference** (Aligned MUI + Tailwind):
 
+Both MUI theme and Tailwind CSS are configured with **identical breakpoints** to prevent conflicts:
+
+**Real Configuration** (`src/shared/config/theme.ts`):
+
 ```typescript
-{
-  xs: 0,    // Mobile first (default)
-  sm: 640,  // Small tablet
-  md: 768,  // Tablet
-  lg: 1024, // Desktop
-  xl: 1280, // Large desktop
+/**
+ * Align MUI breakpoints with Tailwind CSS for consistency
+ * Tailwind: sm=640, md=768, lg=1024, xl=1280, 2xl=1536
+ * This prevents responsive behavior conflicts between the two systems
+ */
+const breakpoints: ThemeOptions['breakpoints'] = {
+  values: { xs: 0, sm: 640, md: 768, lg: 1024, xl: 1280 },
 }
 ```
+
+**Breakpoint Values:**
+
+- `xs: 0px` - Mobile first (default, always active)
+- `sm: 640px` - Small tablet / Large phone (matches Tailwind `sm:`)
+- `md: 768px` - Tablet (matches Tailwind `md:`)
+- `lg: 1024px` - Desktop (matches Tailwind `lg:`)
+- `xl: 1280px` - Large desktop (matches Tailwind `xl:`)
+
+**Usage Example:**
+
+```typescript
+// MUI sx prop
+<Box sx={{ p: { xs: 2, md: 3, lg: 4 } }} />
+
+// Tailwind classes
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
+```
+
+Both approaches trigger at the same screen widths, ensuring consistent responsive behavior.
 
 ## Import Conventions
 

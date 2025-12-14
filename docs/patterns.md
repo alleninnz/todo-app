@@ -2,129 +2,335 @@
 
 ## Code Templates
 
-### Service Template
+### Service Template (Real Implementation)
+
+**Location**: `src/features/tasks/services/task.service.ts`
+
+This is the actual implementation used in the project for task API operations:
 
 ```typescript
-// features/tasks/services/task.service.ts
-import { httpClient } from '@shared/api/httpClient'
-import type { Task, TaskDraft, TaskUpdate } from '@shared/types/task.types'
+import { httpClient } from '@/shared/api/httpClient'
+import type { Task, TaskDraft, TaskUpdate } from '@/shared/types/task.types'
 
-const API_BASE = '/tasks'
+const BASE_URL = 'tasks'
 
+/**
+ * Service for managing task-related API interactions.
+ * Handles CRUD operations for tasks using the configured HTTP client.
+ */
 export const taskService = {
-  async fetchTasks(): Promise<Task[]> {
-    return httpClient.get<Task[]>(API_BASE)
+  /**
+   * Fetches all tasks.
+   * @returns Promise resolving to an array of Task objects.
+   */
+  getAll: async (): Promise<Task[]> => {
+    return httpClient.get<Task[]>(BASE_URL)
   },
 
-  async fetchTask(id: string): Promise<Task> {
-    return httpClient.get<Task>(`${API_BASE}/${id}`)
+  /**
+   * Fetches a single task by ID.
+   * @param id - The unique identifier of the task.
+   * @returns Promise resolving to a Task object.
+   */
+  getById: async (id: string): Promise<Task> => {
+    return httpClient.get<Task>(`${BASE_URL}/${id}`)
   },
 
-  async createTask(draft: TaskDraft): Promise<Task> {
-    return httpClient.post<Task>(API_BASE, { json: draft })
+  /**
+   * Creates a new task.
+   * @param data - The task creation payload (TaskDraft).
+   * @returns Promise resolving to the created Task object.
+   */
+  create: async (data: TaskDraft): Promise<Task> => {
+    return httpClient.post<Task>(BASE_URL, { json: data })
   },
 
-  async updateTask(id: string, updates: TaskUpdate): Promise<Task> {
-    return httpClient.patch<Task>(`${API_BASE}/${id}`, { json: updates })
+  /**
+   * Updates an existing task.
+   * @param id - The unique identifier of the task to update.
+   * @param data - The task update payload (TaskUpdate).
+   * @returns Promise resolving to the updated Task object.
+   */
+  update: async (id: string, data: TaskUpdate): Promise<Task> => {
+    return httpClient.patch<Task>(`${BASE_URL}/${id}`, { json: data })
   },
 
-  async deleteTask(id: string): Promise<void> {
-    return httpClient.delete<void>(`${API_BASE}/${id}`)
+  /**
+   * Deletes a task.
+   * @param id - The unique identifier of the task to delete.
+   * @returns Promise resolving when the deletion is complete.
+   */
+  delete: async (id: string): Promise<void> => {
+    return httpClient.delete<void>(`${BASE_URL}/${id}`)
   },
 }
 ```
 
-### Store Template
+**Key Features:**
+
+- JSDoc comments for API documentation
+- Type-safe with TypeScript generics
+- Uses centralized httpClient with automatic camelCase/snake_case conversion
+- Returns typed promises for better IDE support
+- Follows RESTful conventions (GET, POST, PATCH, DELETE)
+
+### React Query Hook Template (Real Implementation)
+
+**Location**: `src/features/tasks/hooks/useTasks.ts`
+
+This is a simplified version of the actual implementation showing the query pattern:
 
 ```typescript
-// features/tasks/store/tasks.store.ts
-import { create } from 'zustand'
-import type {
-  Task,
-  TaskFilters,
-  TaskSortOption,
-} from '@shared/types/task.types'
-
-interface TasksStore {
-  // State
-  items: Task[]
-  filters: TaskFilters
-  sort: TaskSortOption
-  isLoading: boolean
-  error: string | null
-
-  // Sync actions
-  setTasks: (tasks: Task[]) => void
-  addTask: (task: Task) => void
-  updateTask: (id: string, updates: Partial<Task>) => void
-  removeTask: (id: string) => void
-  setFilters: (filters: TaskFilters) => void
-  setSort: (sort: TaskSortOption) => void
-  setLoading: (loading: boolean) => void
-  setError: (error: string | null) => void
-}
-
-export const useTasksStore = create<TasksStore>(set => ({
-  items: [],
-  filters: { status: 'all' },
-  sort: { field: 'createdAt', direction: 'desc' },
-  isLoading: false,
-  error: null,
-
-  setTasks: tasks => set({ items: tasks }),
-  addTask: task => set(state => ({ items: [...state.items, task] })),
-  updateTask: (id, updates) =>
-    set(state => ({
-      items: state.items.map(task =>
-        task.id === id ? { ...task, ...updates } : task
-      ),
-    })),
-  removeTask: id =>
-    set(state => ({
-      items: state.items.filter(task => task.id !== id),
-    })),
-  setFilters: filters => set({ filters }),
-  setSort: sort => set({ sort }),
-  setLoading: loading => set({ isLoading: loading }),
-  setError: error => set({ error }),
-}))
-```
-
-### Hook Template
-
-```typescript
-// features/tasks/hooks/useTaskActions.ts
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSnackbar } from '@shared/hooks/useSnackbar'
+import { useMemo } from 'react'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { taskService } from '../services/task.service'
-import type { TaskDraft, Task } from '@shared/types/task.types'
+import {
+  type Task,
+  type TaskFilters,
+  type TaskSortOption,
+  DEFAULT_FILTERS,
+  DEFAULT_SORT,
+  PRIORITY_ORDER,
+} from '@/shared/types'
+import { parseDateString } from '@/shared/lib/date'
+
+interface UseTasksOptions {
+  filters?: TaskFilters
+  sort?: TaskSortOption
+  enabled?: boolean
+  staleTime?: number
+}
+
+interface UseTasksResult extends Omit<UseQueryResult<Task[], Error>, 'data'> {
+  tasks: Task[]
+  allTasks: Task[] | undefined
+  totalCount: number
+  activeCount: number
+  completedCount: number
+  isEmpty: boolean
+  hasTasks: boolean
+}
+
+export const useTasks = ({
+  filters = DEFAULT_FILTERS,
+  sort = DEFAULT_SORT,
+  enabled = true,
+  staleTime = 30 * 1000, // 30 seconds
+}: UseTasksOptions = {}): UseTasksResult => {
+  const query = useQuery({
+    queryKey: ['tasks'],
+    queryFn: taskService.getAll,
+    enabled,
+    staleTime,
+  })
+
+  // Client-side filtering and sorting with useMemo
+  const tasks = useMemo(() => {
+    if (!query.data) return []
+    let result = [...query.data]
+
+    // Apply filters
+    if (filters.status !== 'all') {
+      const isCompleted = filters.status === 'completed'
+      result = result.filter(task => task.completed === isCompleted)
+    }
+    if (filters.priority) {
+      result = result.filter(task => task.priority === filters.priority)
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      let comparison = 0
+      switch (sort.field) {
+        case 'priority':
+          comparison = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+          break
+        case 'dueDate':
+          // Tasks without due date go last
+          if (!a.dueDate && b.dueDate) return 1
+          if (a.dueDate && !b.dueDate) return -1
+          const dateA = a.dueDate
+            ? (parseDateString(a.dueDate)?.getTime() ?? 0)
+            : 0
+          const dateB = b.dueDate
+            ? (parseDateString(b.dueDate)?.getTime() ?? 0)
+            : 0
+          comparison = dateA - dateB
+          break
+        case 'createdAt':
+          const createdA = parseDateString(a.createdAt)?.getTime() ?? 0
+          const createdB = parseDateString(b.createdAt)?.getTime() ?? 0
+          comparison = createdA - createdB
+          break
+      }
+      return sort.direction === 'asc' ? comparison : -comparison
+    })
+
+    return result
+  }, [query.data, filters, sort])
+
+  // Calculate counts from raw data
+  const { totalCount, activeCount, completedCount } = useMemo(() => {
+    if (!query.data) return { totalCount: 0, activeCount: 0, completedCount: 0 }
+    let active = 0,
+      completed = 0
+    for (const task of query.data) {
+      if (task.completed) completed++
+      else active++
+    }
+    return {
+      totalCount: query.data.length,
+      activeCount: active,
+      completedCount: completed,
+    }
+  }, [query.data])
+
+  return {
+    ...query,
+    tasks,
+    allTasks: query.data,
+    totalCount,
+    activeCount,
+    completedCount,
+    isEmpty: query.isSuccess && tasks.length === 0,
+    hasTasks: query.isSuccess && tasks.length > 0,
+  }
+}
+```
+
+**Key Features:**
+
+- Client-side filtering and sorting with useMemo for performance
+- Derived counts calculated from raw data
+- Type-safe with comprehensive TypeScript interfaces
+- Configurable caching with staleTime parameter
+- Helper properties (isEmpty, hasTasks) for UI states
+
+### Mutation Hook Template (Real Implementation)
+
+**Location**: `src/features/tasks/hooks/useTaskActions.ts`
+
+This shows the actual optimistic update pattern used in the project:
+
+```typescript
+import { useCallback } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSnackbar } from '@/shared/hooks/useSnackbar'
+import { taskService } from '../services'
+import type { Task, TaskUpdate, TaskDraft } from '@/shared/types'
+
+export const taskKeys = {
+  all: ['tasks'] as const,
+  lists: () => [...taskKeys.all, 'list'] as const,
+  details: () => [...taskKeys.all, 'detail'] as const,
+  detail: (id: string) => [...taskKeys.details(), id] as const,
+}
+
+interface CreateMutationContext {
+  previousTasks: Task[] | undefined
+}
 
 export const useTaskActions = () => {
   const queryClient = useQueryClient()
   const { showSuccess, showError } = useSnackbar()
 
-  const createMutation = useMutation({
-    mutationFn: (draft: TaskDraft) => taskService.createTask(draft),
-    onSuccess: newTask => {
-      showSuccess(`Created "${newTask.title}"`)
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  const invalidateTasks = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),
+    [queryClient]
+  )
 
-      // Or update cache directly (optimistic update pattern is different, this is simple cache update)
-      queryClient.setQueryData<Task[]>(['tasks'], old =>
-        old ? [...old, newTask] : [newTask]
+  const createMutation = useMutation<
+    Task,
+    Error,
+    TaskDraft,
+    CreateMutationContext
+  >({
+    mutationFn: taskService.create,
+    onMutate: async newTask => {
+      await queryClient.cancelQueries({ queryKey: taskKeys.all })
+      const previousTasks = queryClient.getQueryData<Task[]>(taskKeys.all)
+
+      const optimisticTask = {
+        ...newTask,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+      } as Task
+
+      queryClient.setQueryData<Task[]>(taskKeys.all, old =>
+        old ? [...old, optimisticTask] : [optimisticTask]
       )
+
+      return { previousTasks }
     },
-    onError: () => {
+    onError: (_err, _var, context) => {
+      if (context?.previousTasks === undefined) {
+        queryClient.removeQueries({ queryKey: taskKeys.all })
+      } else {
+        queryClient.setQueryData(taskKeys.all, context.previousTasks)
+      }
       showError('Failed to create task')
     },
+    onSuccess: data => showSuccess(`Task "${data.title}" created`),
+    onSettled: invalidateTasks,
   })
 
+  // Stable callback wrappers
+  const createTask = useCallback(
+    (data: TaskDraft) => createMutation.mutate(data),
+    [createMutation]
+  )
+
+  // Per-item loading state helpers
+  const isTaskUpdating = useCallback(
+    (id: string) =>
+      updateMutation.isPending && updateMutation.variables?.id === id,
+    [updateMutation.isPending, updateMutation.variables]
+  )
+
   return {
-    createTask: createMutation.mutateAsync,
+    createTask,
+    createTaskAsync: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    isTaskUpdating, // Per-item loading states
+    // ... other mutations (update, delete, toggle)
   }
 }
+```
+
+**Key Features:**
+
+- Optimistic updates with automatic rollback on error
+- Type-safe mutation contexts for rollback data
+- Stable callbacks using useCallback for performance
+- Per-item loading states for granular UI control
+- Centralized query key factory pattern
+- Integrated snackbar notifications
+
+### Store Template (Zustand)
+
+```typescript
+// features/tasks/store/tasks.store.ts
+import { create } from 'zustand'
+
+interface TasksStore {
+  // UI State (not server state - React Query handles that)
+  selectedTaskId: string | null
+  isFormOpen: boolean
+
+  // Actions
+  setSelectedTaskId: (id: string | null) => void
+  openForm: () => void
+  closeForm: () => void
+}
+
+export const useTasksStore = create<TasksStore>(set => ({
+  selectedTaskId: null,
+  isFormOpen: false,
+
+  setSelectedTaskId: id => set({ selectedTaskId: id }),
+  openForm: () => set({ isFormOpen: true }),
+  closeForm: () => set({ isFormOpen: false, selectedTaskId: null }),
+}))
 ```
 
 ## UI Component Patterns
@@ -132,9 +338,21 @@ export const useTaskActions = () => {
 ### Loading States
 
 ```typescript
-if (isLoading) return <LoadingSkeleton />
-if (error) return <ErrorState error={error} onRetry={loadTasks} />
-if (!data?.length) return <EmptyState />
+function TaskList() {
+  const { tasks, isLoading, isError, error, isEmpty } = useTasks()
+
+  if (isLoading) return <LoadingSkeleton />
+  if (isError) return <ErrorState error={error} onRetry={refetch} />
+  if (isEmpty) return <EmptyState />
+
+  return (
+    <ul>
+      {tasks.map(task => (
+        <TaskItem key={task.id} task={task} />
+      ))}
+    </ul>
+  )
+}
 ```
 
 ### Form with Validation
@@ -149,9 +367,27 @@ const TaskForm = () => {
     resolver: zodResolver(taskSchema)
   })
 
-  const onSubmit = (data) => createTask(data)
+  const { createTask } = useTaskActions()
 
-  return <form onSubmit={handleSubmit(onSubmit)}>...</form>
+  const onSubmit = (data: TaskDraft) => createTask(data)
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <TextField
+        {...register('title')}
+        label="Title"
+        error={!!errors.title}
+        helperText={errors.title?.message}
+      />
+      <TextField
+        {...register('description')}
+        label="Description"
+        multiline
+        rows={4}
+      />
+      <Button type="submit">Create Task</Button>
+    </form>
+  )
 }
 ```
 
@@ -257,20 +493,21 @@ const status = extractStatusCode(error) // Handles error.status, error.statusCod
 
 ### Custom Error Types
 
-The `ApiError` class provides structured error information:
+The `ApiError` class from httpClient provides structured error information:
 
 ```typescript
-import { ApiError } from '@shared/api/httpClient'
+import { httpClient } from '@shared/api/httpClient'
 
 try {
   await httpClient.get('tasks')
 } catch (error) {
-  if (error instanceof ApiError) {
-    console.log(error.status) // HTTP status code
-    console.log(error.statusText) // HTTP status text
-    console.log(error.message) // Error message
-    console.log(error.url) // Request URL
-    console.log(error.data) // Parsed response data
+  if (error instanceof Error && 'status' in error) {
+    const apiError = error as any // ApiError is exported from httpClient
+    console.log(apiError.status) // HTTP status code
+    console.log(apiError.statusText) // HTTP status text
+    console.log(apiError.message) // Error message
+    console.log(apiError.url) // Request URL
+    console.log(apiError.data) // Parsed response data (camelCase)
   }
 }
 ```
@@ -303,4 +540,158 @@ category: 'client' | 'server' | 'unknown' → ['Try Again', 'Reload Page']
     { label: 'Contact Support', onClick: handleSupport, variant: 'contained' }
   ]}
 />
+```
+
+### React Query Error Handling
+
+```typescript
+// Global error handler in QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors
+        if (extractStatusCode(error) && extractStatusCode(error)! < 500) {
+          return false
+        }
+        return failureCount < 2
+      },
+    },
+  },
+})
+
+// Component-level error handling
+function TaskList() {
+  const { tasks, isError, error, refetch } = useTasks()
+
+  if (isError) {
+    const { statusCode, errorInfo } = getErrorInfo(error)
+
+    return (
+      <ErrorPageUI
+        statusCode={statusCode}
+        errorInfo={errorInfo}
+        customActions={[
+          { label: 'Retry', onClick: refetch, variant: 'contained' }
+        ]}
+      />
+    )
+  }
+
+  return <List tasks={tasks} />
+}
+```
+
+## Best Practices
+
+### 1. State Management
+
+- **Server State**: Use React Query for all API data
+- **Client State**: Use Zustand for UI state (modals, selections)
+- **Form State**: Use React Hook Form for forms
+- **URL State**: Use React Router for shareable state (future)
+
+### 2. Component Organization
+
+```typescript
+// ✅ Good: Co-located tests and clear separation
+features / tasks / components / TaskList.tsx
+__tests__ / TaskList.test.tsx
+hooks / useTasks.ts
+__tests__ / useTasks.test.tsx
+services / task.service.ts
+__tests__ / task.service.test.ts
+```
+
+### 3. Type Safety
+
+```typescript
+// ✅ Good: Strict types, no any
+interface TaskItemProps {
+  task: Task
+  onDelete: (id: string) => void
+  onToggle: (id: string, completed: boolean) => void
+}
+
+// ❌ Bad: Using any
+function TaskItem({ task, onDelete }: any) {}
+```
+
+### 4. Error Messages
+
+```typescript
+// ✅ Good: User-friendly messages
+showError('Failed to create task. Please try again.')
+
+// ❌ Bad: Technical jargon
+showError('POST /api/tasks returned 500 Internal Server Error')
+```
+
+### 5. Loading States
+
+```typescript
+// ✅ Good: Per-item loading states
+function TaskItem({ task }: { task: Task }) {
+  const { deleteTask, isTaskDeleting } = useTaskActions()
+  const isDeleting = isTaskDeleting(task.id)
+
+  return (
+    <IconButton
+      onClick={() => deleteTask(task.id)}
+      disabled={isDeleting}
+    >
+      {isDeleting ? <CircularProgress size={20} /> : <DeleteIcon />}
+    </IconButton>
+  )
+}
+
+// ❌ Bad: Global loading state for granular operations
+function TaskItem({ task, isDeleting }: { task: Task, isDeleting: boolean }) {
+  // All tasks show loading, not just the one being deleted
+}
+```
+
+### 6. Optimistic Updates
+
+```typescript
+// ✅ Good: Optimistic updates with rollback
+const createMutation = useMutation({
+  mutationFn: taskService.create,
+  onMutate: async newTask => {
+    // Cancel queries and snapshot
+    await queryClient.cancelQueries({ queryKey: ['tasks'] })
+    const previous = queryClient.getQueryData(['tasks'])
+
+    // Optimistically update
+    queryClient.setQueryData(['tasks'], old => [...old, newTask])
+
+    return { previous }
+  },
+  onError: (err, variables, context) => {
+    // Rollback on error
+    queryClient.setQueryData(['tasks'], context.previous)
+    showError('Failed to create task')
+  },
+})
+```
+
+### 7. Query Key Management
+
+```typescript
+// ✅ Good: Centralized query keys
+export const taskKeys = {
+  all: ['tasks'] as const,
+  lists: () => [...taskKeys.all, 'list'] as const,
+  list: (filters: TaskFilters) => [...taskKeys.lists(), { filters }] as const,
+  details: () => [...taskKeys.all, 'detail'] as const,
+  detail: (id: string) => [...taskKeys.details(), id] as const,
+}
+
+// Usage
+useQuery({ queryKey: taskKeys.list(filters), ... })
+queryClient.invalidateQueries({ queryKey: taskKeys.all })
+
+// ❌ Bad: Hardcoded strings everywhere
+useQuery({ queryKey: ['tasks'], ... })
+queryClient.invalidateQueries({ queryKey: ['tasks'] })
 ```

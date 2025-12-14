@@ -4,6 +4,18 @@
 
 The `LoadingSkeleton` component provides a configuration-driven skeleton loading system with multiple variants optimized for the Todo App UI.
 
+**Location**: `src/shared/ui/LoadingSkeleton.tsx`
+
+**Architecture**:
+
+- Configuration-driven pattern (eliminates if-else chains)
+- Four built-in variants (taskCard, taskList, text, circular)
+- Performance optimized with React.memo
+- Theme-integrated styling (respects dark mode, spacing, colors)
+- Accessibility support (disable animation for reduced motion)
+
+**Technology**: Built with MUI Skeleton component and Stack for layout.
+
 ## Basic Usage
 
 ### Task Card Skeleton
