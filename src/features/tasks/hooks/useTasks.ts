@@ -116,7 +116,11 @@ export const useTasks = ({
       if (task.completed) completed++
       else active++
     }
-    return { totalCount: query.data.length, activeCount: active, completedCount: completed }
+    return {
+      totalCount: query.data.length,
+      activeCount: active,
+      completedCount: completed,
+    }
   }, [query.data])
 
   return {

@@ -214,7 +214,10 @@ describe('useTaskActions', () => {
       server.use(
         http.post('*/tasks', async () => {
           await new Promise(resolve => setTimeout(resolve, 50))
-          return HttpResponse.json({ ...newTask, id: '1', createdAt: '2023' }, { status: 201 })
+          return HttpResponse.json(
+            { ...newTask, id: '1', createdAt: '2023' },
+            { status: 201 }
+          )
         })
       )
 
@@ -252,7 +255,9 @@ describe('useTaskActions', () => {
       result.current.updateTask('1', { title: 'Updated' })
 
       await waitFor(() => expect(result.current.isTaskUpdating('1')).toBe(true))
-      await waitFor(() => expect(result.current.isTaskUpdating('1')).toBe(false))
+      await waitFor(() =>
+        expect(result.current.isTaskUpdating('1')).toBe(false)
+      )
     })
   })
 })
